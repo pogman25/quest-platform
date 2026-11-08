@@ -1,0 +1,63 @@
+import {
+    Clock,
+    BookOpen,
+    KeyRound,
+    Coffee,
+    Flame,
+    CloudSnow,
+    LampDesk,
+    Umbrella,
+    Circle,
+    Armchair,
+    Star,
+    Bell,
+    Gift,
+    Candy,
+    Snowflake,
+    Hand,
+    UserRound,
+    Ribbon,
+    Rabbit,
+    Trees,
+    Camera,
+    ScanLine,
+    Puzzle,
+    ListChecks,
+    Layers3,
+} from 'lucide-react';
+
+import type { LucideIcon } from 'lucide-react';
+import type { IconName, QuestType } from '../../../shared/quests';
+
+export const questIcons = {
+    nfc: ScanLine,
+    qr: Puzzle,
+    objects: ListChecks,
+    photo: Camera,
+    tree: Trees,
+    stencil: Layers3,
+} satisfies Record<QuestType, LucideIcon>;
+
+export const iconImages = {
+    clock: Clock,
+    cup: Coffee,
+    candle: Flame,
+    book: BookOpen,
+    key: KeyRound,
+    cloud: CloudSnow,
+    lamp: LampDesk,
+    umbrella: Umbrella,
+    ball: Circle,
+    chair: Armchair,
+    star: Star,
+    bell: Bell,
+    gift: Gift,
+    candy: Candy,
+    flake: Snowflake,
+    glove: Hand,
+    snowman: UserRound,
+    ribbon: Ribbon,
+    rabbit: Rabbit,
+    tree: Trees,
+    camera: Camera,
+} satisfies Record<IconName, LucideIcon>;

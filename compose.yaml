@@ -1,0 +1,48 @@
+services:
+    db:
+        image: postgres:17-bookworm
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: quest_platform
+            POSTGRES_USER: quest_admin
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+            interval: 5s
+            timeout: 3s
+            retries: 20
+
+    app:
+        image: ${QUEST_IMAGE:-quest-platform:local}
+        build: .
+        restart: unless-stopped
+        init: true
+        depends_on:
+            db:
+                condition: service_healthy
+        environment:
+            PGHOST: db
+            PGUSER: quest_admin
+            PGDATABASE: quest_platform
+            PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+            ADMIN_EMAIL: ${ADMIN_EMAIL:-organizer@example.test}
+            ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+            COOKIE_SECURE: ${COOKIE_SECURE:-false}
+        ports:
+            - '${QUEST_BIND:-127.0.0.1}:${QUEST_PORT:-4173}:4173'
+        healthcheck:
+            test:
+                [
+                    'CMD',
+                    'node',
+                    '-e',
+                    "fetch('http://127.0.0.1:4173/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+volumes:
+    postgres_data:

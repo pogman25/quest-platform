@@ -1,0 +1,36 @@
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 9px;
+    border-radius: 7px;
+    min-height: 37px;
+    color: var(--ink);
+    font-size: 13px;
+}
+.nav-link:hover,
+.nav-link[aria-current] {
+    background: var(--green-soft);
+    color: var(--green-dark);
+}
+.nav-link[aria-current] {
+    font-weight: 730;
+    box-shadow: inset 3px 0 var(--green);
+}
+.game-navigation {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--paper);
+}
+
+@media (max-width: 760px) {
+    .nav-link {
+        flex: 0 0 auto;
+        min-height: 34px;
+    }
+}

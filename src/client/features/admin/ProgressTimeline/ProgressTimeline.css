@@ -1,0 +1,15 @@
+.progress-row {
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+}
+.progress-row details {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 14px;
+}
+summary {
+    cursor: pointer;
+}
+.dim {
+    opacity: 0.5;
+}

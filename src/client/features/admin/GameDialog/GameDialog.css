@@ -1,0 +1,29 @@
+.game-dialog {
+    width: min(420px, calc(100% - 32px));
+    padding: 24px;
+    color: var(--ink);
+}
+.game-dialog::backdrop {
+    background: #17251f66;
+}
+.game-dialog form {
+    display: grid;
+    gap: 16px;
+}
+.game-dialog p {
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+.game-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.delete-game-button {
+    background: #a1342c;
+    color: #fff;
+}
+.delete-game-button:hover {
+    background: #852920;
+}

@@ -1,0 +1,51 @@
+.quest-order {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.quest-order-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 0;
+    border-top: 1px solid var(--line);
+    background: var(--paper);
+    font-size: 14px;
+}
+.quest-order-row[data-dragging] {
+    border-radius: 7px;
+    background: var(--green-soft);
+    box-shadow: 0 0 0 1px var(--green);
+}
+.quest-order-handle {
+    display: grid;
+    flex: 0 0 38px;
+    min-height: 42px;
+    place-items: center;
+    border-radius: 7px;
+    color: var(--green-dark);
+    cursor: grab;
+}
+.quest-order-handle:hover,
+.quest-order-handle:focus-visible {
+    background: var(--green-soft);
+}
+.quest-order-row[data-dragging] .quest-order-handle {
+    cursor: grabbing;
+}
+.quest-order-title {
+    flex: 1;
+    min-width: 0;
+    color: var(--green);
+    overflow-wrap: anywhere;
+}
+.quest-order-title:hover {
+    text-decoration: underline;
+}
+.step-number {
+    padding: 3px 6px;
+    color: var(--green);
+    background: var(--green-soft);
+    border-radius: 5px;
+    font-size: 12px;
+}

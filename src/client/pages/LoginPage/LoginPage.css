@@ -1,0 +1,9 @@
+.login-panel {
+    display: grid;
+    width: min(100%, 440px);
+    gap: 12px;
+    padding: 25px;
+}
+.login-panel p {
+    color: var(--muted);
+}

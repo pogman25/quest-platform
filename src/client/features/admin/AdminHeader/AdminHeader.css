@@ -1,0 +1,71 @@
+.admin-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+}
+.admin-header-inner {
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: min(100%, 1330px);
+    margin: 0 auto;
+    padding: 8px clamp(16px, 3vw, 40px);
+}
+.admin-header-navigation {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+    min-width: 0;
+}
+.admin-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 750;
+}
+.admin-brand-icon {
+    display: grid;
+    place-items: center;
+    width: 35px;
+    height: 35px;
+    border-radius: 9px;
+    color: #fff;
+    background: var(--green-dark);
+}
+.admin-breadcrumbs {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px;
+    min-width: 0;
+}
+.admin-breadcrumbs a {
+    color: var(--green-dark);
+    font-weight: 650;
+}
+.admin-breadcrumbs a:hover {
+    text-decoration: underline;
+}
+.admin-breadcrumb-item {
+    overflow-wrap: anywhere;
+}
+.profile-avatar {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--green-soft);
+    font-size: 14px;
+    font-weight: 700;
+}
+.profile-caption {
+    padding: 6px 8px;
+    color: var(--muted);
+    font-size: 12px;
+}
