@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { iconNames, questTypes } from '../../shared/quests';
+import { currentStencilStrokeVersion, iconNames, questTypes } from '../../shared/quests';
 import { gameId } from '../http';
 
 export const questType = z.enum(questTypes);
@@ -66,7 +66,7 @@ export const questSchema = z.discriminatedUnion('type', [
             })
             .optional(),
         strokeSeed: z.number().int().min(0).max(0xffffffff).optional(),
-        strokeVersion: z.literal(2).optional(),
+        strokeVersion: z.union([z.literal(2), z.literal(currentStencilStrokeVersion)]).optional(),
     }),
 ]);
 

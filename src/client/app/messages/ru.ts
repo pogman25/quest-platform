@@ -136,7 +136,8 @@ export const messages = {
     'stencil.width': 'Ширина полного трафарета',
     'stencil.correctNumber': 'Номер подлинника',
     'stencil.newKit': 'Новый комплект',
-    'stencil.newKitDetail': '«Новый комплект» применит обновлённое разбиение букв и создаст новые подделки.',
+    'stencil.newKitDetail':
+        '«Новый комплект» создаст подделки из переставленных штрихов и добавит фрагменты других букв.',
     'stencil.print': 'Комплект на печать',
     'stencil.printFormat': '3 листа A4 · 100%',
     'stencil.printDetail':

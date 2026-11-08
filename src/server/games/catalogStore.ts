@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from 'pg';
 import type { Catalog, IconCatalogEntry, QuestCatalogEntry } from '../../shared/catalog';
-import type { QuestType } from '../../shared/quests';
+import { currentStencilStrokeVersion } from '../../shared/quests';
+import type { Quest, QuestType } from '../../shared/quests';
 import { makeTag, makeToken } from '../../shared/tokens';
 import { HttpError } from '../http';
 import { questSchema } from './gameSchema';
@@ -23,7 +24,7 @@ export async function readCatalog(db: Pool): Promise<Catalog> {
     };
 }
 
-export async function instantiateQuest(db: Pool | PoolClient, type: QuestType) {
+export async function instantiateQuest(db: Pool | PoolClient, type: QuestType): Promise<Quest> {
     const result = await db.query<{ template: unknown }>(
         'SELECT template FROM quest_catalog WHERE type = $1',
         [type],
@@ -46,7 +47,12 @@ export async function instantiateQuest(db: Pool | PoolClient, type: QuestType) {
             return { ...template, token: makeToken('qr') };
         case 'stencil': {
             const [strokeSeed, number] = crypto.getRandomValues(new Uint32Array(2));
-            return { ...template, strokeSeed, correct: (number % 8) + 1 };
+            return {
+                ...template,
+                strokeSeed,
+                strokeVersion: currentStencilStrokeVersion,
+                correct: (number % 8) + 1,
+            };
         }
         default:
             return template;

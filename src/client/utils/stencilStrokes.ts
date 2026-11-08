@@ -1,3 +1,6 @@
+import { currentStencilStrokeVersion } from '../../shared/quests';
+import type { StencilQuest } from '../../shared/quests';
+
 type Point = readonly [x: number, y: number];
 export type Stroke = readonly [start: Point, end: Point];
 
@@ -324,14 +327,18 @@ function makeFragmentedGlyph(letter: string, masks: Set<string>, random: () => n
     return { reference, base, complement, fragments, changes: shuffle(changes, random) };
 }
 
-function makeFragmentedStencil(letters: string[], seed: number) {
-    const random = makeRandom(seed);
+function makeFragmentedGlyphs(letters: string[], random: () => number) {
     const usedByLetter = new Map<string, Set<string>>();
-    const glyphs = letters.map((letter) => {
+    return letters.map((letter) => {
         const masks = usedByLetter.get(letter) ?? new Set<string>();
         usedByLetter.set(letter, masks);
         return makeFragmentedGlyph(letter, masks, random);
     });
+}
+
+function makeFragmentedStencil(letters: string[], seed: number) {
+    const random = makeRandom(seed);
+    const glyphs = makeFragmentedGlyphs(letters, random);
 
     const choices = (half: typeof glyphs) => {
         const positions = shuffle(
@@ -367,7 +374,55 @@ function makeFragmentedStencil(letters: string[], seed: number) {
     });
 }
 
-export function makeStrokeStencil(letters: string[], seed: number, version?: 2) {
+function scrambleLetters(letters: string[], absent: string[], random: () => number) {
+    const half = letters.length / 2;
+    // Give each card its own share of foreign letters, even in a four-letter word.
+    const foreignPositions = new Set(
+        [0, half].flatMap((start) =>
+            shuffle(
+                Array.from({ length: half }, (_, index) => start + index),
+                random,
+            ).slice(0, Math.ceil(half / 2)),
+        ),
+    );
+    const shuffled = shuffle([...letters], random);
+    const foreign = shuffle([...absent], random);
+    return letters.map((letter, index) => {
+        if (!foreignPositions.has(index)) {
+            const donor = shuffled.findIndex((candidate) => glyphs[candidate] !== glyphs[letter]);
+            if (donor !== -1) {
+                return shuffled.splice(donor, 1)[0];
+            }
+        }
+        // Repeated letters can leave no different donor. Use an absent letter in that cell as well.
+        return foreign.pop()!;
+    });
+}
+
+function makeScrambledStencil(letters: string[], seed: number) {
+    const random = makeRandom(seed);
+    const originals = makeFragmentedGlyphs(letters, random);
+    const usedShapes = new Set(letters.map((letter) => glyphs[letter]));
+    const scripts = new Set(letters.map((letter) => letter in latin));
+    const absent = Object.keys(glyphs).filter(
+        (letter) => scripts.has(letter in latin) && !usedShapes.has(glyphs[letter]),
+    );
+    const overlays = Array.from({ length: 7 }, () => {
+        const decoyLetters = scrambleLetters(letters, absent, random);
+        return makeFragmentedGlyphs(decoyLetters, random).map(({ complement }) => complement);
+    });
+    return originals.map(({ reference, base, complement }, index) => ({
+        reference,
+        base,
+        complement,
+        decoys: overlays.map((overlay) => overlay[index]),
+    }));
+}
+
+export function makeStrokeStencil(letters: string[], seed: number, version?: StencilQuest['strokeVersion']) {
     // Old saved seeds must reproduce the sheets an organizer may have already printed.
+    if (version === currentStencilStrokeVersion) {
+        return makeScrambledStencil(letters, seed);
+    }
     return version === 2 ? makeFragmentedStencil(letters, seed) : makeLegacyStencil(letters, seed);
 }

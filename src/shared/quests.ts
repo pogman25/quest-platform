@@ -45,6 +45,7 @@ export type QrQuest = QuestBase<'qr'> & {
 };
 export type PhotoQuest = QuestBase<'photo'> & { picture: Picture; answers: string };
 export type IconQuest = QuestBase<'objects' | 'tree'> & { slots: IconSlot[]; answers: string[] };
+export const currentStencilStrokeVersion = 3;
 export type StencilFont = 'rounded' | 'serif' | 'mono' | 'custom';
 export type UploadedFont = { name: string; family: string; src: string };
 export type StencilQuest = QuestBase<'stencil'> & {
@@ -54,7 +55,7 @@ export type StencilQuest = QuestBase<'stencil'> & {
     correct: number;
     customFont?: UploadedFont;
     strokeSeed?: number;
-    strokeVersion?: 2;
+    strokeVersion?: 2 | typeof currentStencilStrokeVersion;
 };
 export type Quest = NfcQuest | QrQuest | PhotoQuest | IconQuest | StencilQuest;
 export type Game = {

@@ -2,6 +2,7 @@ import { useIntl } from 'react-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { FileType2, Layers3, Printer, RefreshCw } from 'lucide-react';
+import { currentStencilStrokeVersion } from '../../../../shared/quests';
 import type { StencilFont, StencilQuest } from '../../../../shared/quests';
 import { EditorSection } from '../../../components/EditorSection/EditorSection';
 import { PdfButton } from '../../../components/PdfButton/PdfButton';
@@ -103,7 +104,12 @@ export function StencilEditor({ quest, onChange, onPrepare }: StencilEditorProps
         const nextSeed = seed === strokeSeed ? (seed + 1) >>> 0 : seed;
         const otherNumbers = overlayNumbers.filter((value) => value !== correct);
         const nextCorrect = otherNumbers[number % otherNumbers.length];
-        onChange({ ...quest, strokeSeed: nextSeed, strokeVersion: 2, correct: nextCorrect });
+        onChange({
+            ...quest,
+            strokeSeed: nextSeed,
+            strokeVersion: currentStencilStrokeVersion,
+            correct: nextCorrect,
+        });
         setSelected(nextCorrect);
     };
     const handleOverlay = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -266,7 +272,7 @@ export function StencilEditor({ quest, onChange, onPrepare }: StencilEditorProps
                     >
                         <RefreshCw size={16} aria-hidden="true" /> {formatMessage({ id: 'stencil.newKit' })}
                     </button>
-                    {strokeVersion !== 2 && (
+                    {strokeVersion !== currentStencilStrokeVersion && (
                         <p className="hint">{formatMessage({ id: 'stencil.newKitDetail' })}</p>
                     )}
                 </EditorSection>
