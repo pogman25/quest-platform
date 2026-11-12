@@ -1,0 +1,17 @@
+.run-code {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.run-code span {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 58px;
+    border-radius: 8px;
+    background: var(--green-soft);
+    color: var(--green-dark);
+    font-size: 32px;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+}

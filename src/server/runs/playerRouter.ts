@@ -4,14 +4,14 @@ import { z } from 'zod';
 import { newToken, tokenHash } from '../auth/credentials';
 import { questType } from '../games/gameSchema';
 import { bearer, HttpError, uuid } from '../http';
-import { markOpened, playerState, submitAnswer } from './runStore';
+import { markOpened, playerState, startRun, submitAnswer } from './runStore';
 
 const attemptBody = z.object({
     attemptId: uuid,
     answer: z.union([
         z.string().min(1).max(512),
         z.array(z.string().min(1).max(100)).min(1).max(9),
-        z.object({ word: z.string().min(1).max(32), overlay: z.number().int().min(1).max(8) }),
+        z.object({ word: z.string().min(1).max(32) }),
     ]),
 });
 
@@ -64,9 +64,12 @@ export function playerRouter(pool: Pool) {
         response.json(await playerState(pool, response.locals.runId));
     });
 
+    router.post('/:runId/start', async (_request, response) => {
+        response.json(await startRun(pool, response.locals.runId));
+    });
+
     router.post('/:runId/quests/:type/open', async (request, response) => {
-        await markOpened(pool, response.locals.runId, questType.parse(request.params.type));
-        response.sendStatus(204);
+        response.json(await markOpened(pool, response.locals.runId, questType.parse(request.params.type)));
     });
 
     router.post('/:runId/quests/:type/attempts', async (request, response) => {

@@ -1,0 +1,20 @@
+.player-picture {
+    max-height: 440px;
+    object-fit: contain;
+    justify-self: start;
+}
+.player-slots {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+.player-slot {
+    width: 100%;
+    min-height: 100px;
+    flex-direction: column;
+    overflow-wrap: anywhere;
+}
+.player-slot[aria-pressed='true'] {
+    background: var(--green-soft);
+    border: 2px solid var(--green);
+}

@@ -256,6 +256,7 @@ export function StencilEditor({ quest, onChange, onPrepare }: StencilEditorProps
                     </label>
                     <label className="field">
                         <span>{formatMessage({ id: 'stencil.correctNumber' })}</span>
+                        <small>{formatMessage({ id: 'stencil.answerHint' })}</small>
                         <select value={correct} onChange={handleCorrect}>
                             {overlayNumbers.map((number) => (
                                 <option key={number} value={number}>

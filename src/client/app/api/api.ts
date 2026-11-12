@@ -3,6 +3,7 @@ type Options = {
     method?: string;
     body?: unknown;
     signal?: AbortSignal;
+    token?: string;
 };
 
 export class ApiError extends Error {
@@ -14,10 +15,13 @@ export class ApiError extends Error {
     }
 }
 
-export async function api<T>(path: string, { method, body, signal }: Options = {}): Promise<T> {
+export async function api<T>(path: string, { method, body, signal, token }: Options = {}): Promise<T> {
     const headers = new Headers({ Accept: 'application/json', 'X-Quest-Request': '1' });
     if (body !== undefined) {
         headers.set('Content-Type', 'application/json');
+    }
+    if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
     }
 
     const response = await fetch(`/api/v1${path}`, { method, headers, body: JSON.stringify(body), signal });

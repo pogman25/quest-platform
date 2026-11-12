@@ -1,0 +1,9 @@
+.player-shell {
+    width: min(760px, calc(100% - 32px));
+    margin: 32px auto;
+    gap: 24px;
+}
+.player-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

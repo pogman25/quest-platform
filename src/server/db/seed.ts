@@ -48,6 +48,8 @@ try {
         const game: Game = {
             id: demoGameId,
             title: 'Дело о пропавшем коде',
+            story: 'Из бюро пропал код от замка. Найдите шесть улик и восстановите его по цифрам.',
+            rules: 'Решайте улики в любом порядке. Берегите реквизит и следуйте указаниям ведущего.',
             order: catalog.map(({ type }) => type),
             quests,
         };
@@ -57,7 +59,7 @@ try {
         const run = await insertRun(client, game, 'Команда № 1', '625481');
         const start = Date.now() - 650_000;
         const at = (seconds: number) => new Date(start + seconds * 1000);
-        await client.query('UPDATE runs SET created_at = $2 WHERE id = $1', [run.id, at(0)]);
+        await client.query('UPDATE runs SET created_at = $2, started_at = $2 WHERE id = $1', [run.id, at(0)]);
         for (const { type, start, solved, attempts } of progress) {
             await client.query(
                 'UPDATE run_quests SET started_at = $3, solved_at = $4 WHERE run_id = $1 AND type = $2',

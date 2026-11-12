@@ -1,0 +1,10 @@
+.player-quest-card {
+    display: grid;
+    gap: 10px;
+    padding: 20px;
+    color: var(--ink);
+    text-align: start;
+}
+.player-quest-card:disabled {
+    opacity: 1;
+}

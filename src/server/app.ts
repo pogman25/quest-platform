@@ -31,7 +31,7 @@ export function createApp(pool: Pool, dist = resolve('dist')) {
     });
 
     const servePage = async (request: Request, response: Response) => {
-        const token = browserToken(request);
+        const token = request.path === '/play' ? undefined : browserToken(request);
         const organizer = token ? await findOrganizerId(pool, token) : undefined;
         const [html, bootstrap] = await Promise.all([
             readFile(resolve(dist, 'index.html'), 'utf8'),

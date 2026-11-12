@@ -15,7 +15,7 @@ export const uuid = z.uuid();
 export const gameId = z
     .string()
     .regex(/^[a-z0-9][a-z0-9-]{0,79}$/)
-    .refine((id) => !['login', 'api', 'assets'].includes(id));
+    .refine((id) => !['login', 'api', 'assets', 'play'].includes(id));
 
 export function bearer(request: Request) {
     const value = /^Bearer ([A-Za-z0-9_-]+)$/.exec(request.get('authorization') ?? '');

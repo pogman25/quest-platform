@@ -1,6 +1,6 @@
 import type { Quest } from '../../shared/quests';
 
-export type Answer = string | string[] | { word: string; overlay: number };
+export type Answer = string | string[] | { word: string; overlay?: number };
 
 function normalize(text: string) {
     return text.normalize('NFC').trim().toLocaleLowerCase('ru').replace(/ё/g, 'е').replace(/\s+/g, ' ');
@@ -38,13 +38,11 @@ export function evaluateAnswer(quest: Quest, answer: Answer) {
                     answer.length === quest.answers.length &&
                     quest.answers.every((id, index) => answer[index] === id),
             };
-        case 'stencil':
+        case 'stencil': {
+            const word = typeof answer === 'string' ? answer : !Array.isArray(answer) ? answer.word : '';
             return {
-                correct:
-                    typeof answer === 'object' &&
-                    !Array.isArray(answer) &&
-                    normalize(answer.word) === normalize(quest.word) &&
-                    answer.overlay === quest.correct,
+                correct: word.trim().length > 0 && normalize(word) === normalize(quest.word),
             };
+        }
     }
 }

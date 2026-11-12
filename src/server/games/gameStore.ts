@@ -4,7 +4,7 @@ import type { Game, Quest } from '../../shared/quests';
 import { transaction } from '../db/database';
 import { HttpError } from '../http';
 
-type GameRow = { id: string; title: string };
+type GameRow = { id: string; title: string; story: string; rules: string };
 type QuestRow = { game_id: string; position: number | null; config: Quest };
 
 export async function listGameSummaries(pool: Pool, organizerId: string) {
@@ -27,7 +27,7 @@ export async function listGames(db: Pool | PoolClient, organizerId: string, game
         }
     >(
         `
-    SELECT g.id, g.title, COALESCE(
+    SELECT g.id, g.title, g.story, g.rules, COALESCE(
       jsonb_agg(to_jsonb(q) ORDER BY q.position) FILTER (WHERE q.type IS NOT NULL), '[]'
     ) AS quests
     FROM games g LEFT JOIN game_quests q ON q.game_id = g.id
@@ -37,9 +37,11 @@ export async function listGames(db: Pool | PoolClient, organizerId: string, game
         [organizerId, gameId ?? null],
     );
 
-    return result.rows.map(({ id, title, quests }): Game => ({
+    return result.rows.map(({ id, title, story, rules, quests }): Game => ({
         id,
         title,
+        story,
+        rules,
         order: quests.filter(({ position }) => position !== null).map(({ config }) => config.type),
         quests: Object.fromEntries(quests.map(({ config }) => [config.type, config])),
     }));
@@ -60,8 +62,8 @@ async function saveQuests(client: PoolClient, game: Game) {
 
 export async function insertGame(client: PoolClient, organizerId: string, game: Game) {
     const result = await client.query(
-        'INSERT INTO games (id, organizer_id, title) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING',
-        [game.id, organizerId, game.title],
+        'INSERT INTO games (id, organizer_id, title, story, rules) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO NOTHING',
+        [game.id, organizerId, game.title, game.story, game.rules],
     );
     if (result.rowCount) {
         await saveQuests(client, game);
@@ -71,11 +73,10 @@ export async function insertGame(client: PoolClient, organizerId: string, game: 
 
 export async function updateGame(pool: Pool, organizerId: string, game: Game) {
     await transaction(pool, async (client) => {
-        const result = await client.query('UPDATE games SET title = $3 WHERE id = $1 AND organizer_id = $2', [
-            game.id,
-            organizerId,
-            game.title,
-        ]);
+        const result = await client.query(
+            'UPDATE games SET title = $3, story = $4, rules = $5 WHERE id = $1 AND organizer_id = $2',
+            [game.id, organizerId, game.title, game.story, game.rules],
+        );
         if (!result.rowCount) {
             throw new HttpError(404, 'GAME_NOT_FOUND', 'Игра не найдена.');
         }

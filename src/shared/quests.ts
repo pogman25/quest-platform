@@ -61,6 +61,8 @@ export type Quest = NfcQuest | QrQuest | PhotoQuest | IconQuest | StencilQuest;
 export type Game = {
     id: string;
     title: string;
+    story: string;
+    rules: string;
     order: QuestType[];
     quests: Partial<Record<QuestType, Quest>>;
 };

@@ -1,0 +1,25 @@
+.run-invitation-qr {
+    width: min(240px, 100%);
+}
+.run-invitation svg {
+    display: block;
+    width: 100%;
+}
+.run-invitation-link {
+    overflow-wrap: anywhere;
+    text-decoration: underline;
+    font-size: 13px;
+}
+.run-invitation-dialog {
+    width: min(760px, calc(100% - 32px));
+    max-height: calc(100svh - 32px);
+    padding: 24px;
+    color: var(--ink);
+    text-align: center;
+}
+.run-invitation-dialog::backdrop {
+    background: #17251fe6;
+}
+.run-invitation-dialog svg {
+    max-height: 65svh;
+}

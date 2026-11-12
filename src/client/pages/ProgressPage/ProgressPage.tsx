@@ -8,6 +8,8 @@ import { useStartRun } from '../../hooks/useStartRun/useStartRun';
 import { EditorSection } from '../../components/EditorSection/EditorSection';
 import { GameNavigation } from '../../features/admin/GameNavigation/GameNavigation';
 import { ProgressTimeline } from '../../features/admin/ProgressTimeline/ProgressTimeline';
+import { RunInvitation } from '../../features/admin/RunInvitation/RunInvitation';
+import { RunOverview } from '../../components/RunOverview/RunOverview';
 
 export function ProgressPage() {
     const { formatDate, formatMessage } = useIntl();
@@ -110,6 +112,7 @@ export function ProgressPage() {
                             <p>
                                 {formatMessage({ id: 'progress.joinCode' })} <strong>{run.joinCode}</strong>
                             </p>
+                            <RunInvitation key={run.id} run={run} />
                         </>
                     ) : runs.isPending ? (
                         <p className="hint" role="status">
@@ -125,7 +128,12 @@ export function ProgressPage() {
                     {formatMessage({ id: 'progress.loadingTimeline' })}
                 </p>
             )}
-            {progress.data && <ProgressTimeline progress={progress.data} />}
+            {progress.data && (
+                <>
+                    <RunOverview {...progress.data} />
+                    <ProgressTimeline progress={progress.data} />
+                </>
+            )}
         </>
     );
 }

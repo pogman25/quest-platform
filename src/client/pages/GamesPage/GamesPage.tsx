@@ -40,7 +40,10 @@ export function GamesPage() {
         if (name && !pending) {
             const id = makeToken('id');
             try {
-                await mutateAsync({ type: 'create', draft: { id, title: name, order: [], quests: {} } });
+                await mutateAsync({
+                    type: 'create',
+                    draft: { id, title: name, story: '', rules: '', order: [], quests: {} },
+                });
             } catch {
                 return;
             }

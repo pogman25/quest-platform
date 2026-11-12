@@ -8,6 +8,7 @@ import { questIcons } from '../../domain/questIcons/questIcons';
 import type { QuestType } from '../../../shared/quests';
 import { GameNavigation } from '../../features/admin/GameNavigation/GameNavigation';
 import { QuestOrder } from '../../features/admin/QuestOrder/QuestOrder';
+import { GameBriefing } from '../../features/admin/GameBriefing/GameBriefing';
 import './GamePage.css';
 
 export function GamePage() {
@@ -41,6 +42,8 @@ export function GamePage() {
             void save({ ...currentGame, order });
         }
     };
+
+    const handleBriefing = (story: string, rules: string) => save({ ...currentGame, story, rules });
 
     return (
         <>
@@ -106,6 +109,13 @@ export function GamePage() {
                     </div>
                 </section>
             </div>
+            <GameBriefing
+                key={currentGame.id}
+                story={currentGame.story}
+                rules={currentGame.rules}
+                saving={saving}
+                onSave={handleBriefing}
+            />
         </>
     );
 }

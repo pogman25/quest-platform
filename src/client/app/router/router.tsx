@@ -4,10 +4,12 @@ import { GamePage } from '../../pages/GamePage/GamePage';
 import { LoginPage } from '../../pages/LoginPage/LoginPage';
 import { ProgressPage } from '../../pages/ProgressPage/ProgressPage';
 import { QuestPage } from '../../pages/QuestPage/QuestPage';
+import { PlayPage } from '../../pages/PlayPage/PlayPage';
 import { AppLayout } from '../AppLayout/AppLayout';
 
 export function createRouter(authenticated: boolean, importError?: string) {
     return createBrowserRouter([
+        { path: 'play', Component: PlayPage },
         {
             element: <AppLayout authenticated={authenticated} importError={importError} />,
             children: [

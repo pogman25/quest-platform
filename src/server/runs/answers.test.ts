@@ -41,7 +41,7 @@ describe('quest answers', () => {
         expect(evaluateAnswer(quest, ['slot-5', 'slot-1', 'slot-2', 'slot-6']).correct).toBe(false);
     });
 
-    it('normalizes photo answers and requires both fields for stencils', () => {
+    it('normalizes photo and stencil words and ignores legacy overlay numbers', () => {
         const photo: PhotoQuest = {
             type: 'photo',
             instruction: '',
@@ -58,8 +58,11 @@ describe('quest answers', () => {
             font: 'rounded' as const,
         };
         expect(evaluateAnswer(quest, { word: 'снегопад', overlay: 3 }).correct).toBe(true);
-        expect(evaluateAnswer(quest, { word: 'снегопад', overlay: 2 }).correct).toBe(false);
-        expect(evaluateAnswer(quest, 'снегопад').correct).toBe(false);
+        expect(evaluateAnswer(quest, { word: 'снегопад', overlay: 2 }).correct).toBe(true);
+        expect(evaluateAnswer(quest, { word: 'снегопад' }).correct).toBe(true);
+        expect(evaluateAnswer(quest, '  СнЕгОпАд  ').correct).toBe(true);
+        expect(evaluateAnswer(quest, 'метель').correct).toBe(false);
+        expect(evaluateAnswer(quest, ['снегопад']).correct).toBe(false);
     });
 
     it('rejects whitespace even if the configured answers end with a comma', () => {

@@ -16,6 +16,9 @@ async function requestBootstrap() {
 }
 
 export async function loadBootstrap() {
+    if (window.location.pathname === '/play') {
+        return { bootstrap: null };
+    }
     const element = document.getElementById('quest-bootstrap');
     const bootstrap: AdminBootstrap | null = element
         ? JSON.parse(element.textContent ?? 'null')

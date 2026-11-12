@@ -74,6 +74,8 @@ export const gameSchema = z
     .object({
         id: gameId,
         title: z.string().trim().min(1).max(80),
+        story: z.string().max(10000).default(''),
+        rules: z.string().max(10000).default(''),
         order: z.array(questType).max(questTypes.length),
         quests: z.partialRecord(questType, questSchema),
     })
