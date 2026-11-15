@@ -1,0 +1,63 @@
+package ru.pogman.questplatform.data
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.Update
+import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface QuestDao {
+    @Query("SELECT * FROM organizer_credentials WHERE id = 1")
+    fun observeCredentials(): Flow<CredentialRow?>
+
+    @Query("SELECT * FROM organizer_credentials WHERE id = 1")
+    suspend fun credentials(): CredentialRow?
+
+    @Insert suspend fun insertCredentials(row: CredentialRow)
+
+    @Update suspend fun updateCredentials(row: CredentialRow)
+
+    @Query("SELECT * FROM app_settings WHERE id = 1") suspend fun settings(): SettingsRow?
+
+    @Query("SELECT * FROM app_settings WHERE id = 1") fun observeSettings(): Flow<SettingsRow?>
+
+    @Upsert suspend fun saveSettings(row: SettingsRow)
+
+    @Query("SELECT * FROM games ORDER BY createdAt DESC, id")
+    fun observeGames(): Flow<List<GameRow>>
+
+    @Transaction
+    @Query("SELECT * FROM games WHERE id = :id")
+    suspend fun game(id: String): GameWithQuests?
+
+    @Upsert suspend fun saveGame(row: GameRow)
+
+    @Upsert suspend fun saveGameQuest(row: GameQuestRow)
+
+    @Query("DELETE FROM games WHERE id = :id") suspend fun deleteGame(id: String)
+
+    @Insert suspend fun insertRun(row: RunRow)
+
+    @Update suspend fun updateRun(row: RunRow)
+
+    @Insert suspend fun insertRunQuest(row: RunQuestRow)
+
+    @Update suspend fun updateRunQuest(row: RunQuestRow)
+
+    @Transaction
+    @Query("SELECT * FROM runs WHERE id = :id")
+    suspend fun run(id: String): RunWithQuests?
+
+    @Transaction
+    @Query("SELECT * FROM runs WHERE id = :id")
+    fun observeRun(id: String): Flow<RunWithQuests?>
+
+    @Transaction
+    @Query("SELECT * FROM runs ORDER BY createdAt DESC, id")
+    fun observeRuns(): Flow<List<RunWithQuests>>
+
+    @Insert suspend fun insertAttempt(row: AttemptRow)
+}

@@ -23,6 +23,7 @@ fun QuestTopBar(
     canGoBack: Boolean,
     onBack: () -> Unit,
     onOrganizer: () -> Unit,
+    onPlayer: (() -> Unit)? = null,
 ) {
     val backDescription = stringResource(R.string.back_action)
 
@@ -31,14 +32,21 @@ fun QuestTopBar(
         navigationIcon = {
             if (canGoBack) {
                 IconButton(onClick = onBack) {
-                    Icon(painter = painterResource(R.drawable.ic_arrow_back), contentDescription = backDescription)
+                    Icon(
+                        painter = painterResource(R.drawable.ic_arrow_back),
+                        contentDescription = backDescription,
+                    )
                 }
             } else {
                 NotebookEmblem(modifier = Modifier.size(48.dp))
             }
         },
         actions = {
-            if (!canGoBack) {
+            if (onPlayer != null) {
+                TextButton(onClick = onPlayer) {
+                    Text(stringResource(R.string.player_mode_action))
+                }
+            } else if (!canGoBack) {
                 TextButton(onClick = onOrganizer) {
                     Text(stringResource(R.string.organizer_action))
                 }

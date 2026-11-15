@@ -13,15 +13,23 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 
 class NavigationTest {
-    @get:Rule
+    private val fixture = IsolatedAppRule()
     val composeRule = createAndroidComposeRule<MainActivity>()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(fixture).around(composeRule)
 
     @Before
     fun waitForFirstComposition() {
         // The v2 dispatcher queues the first frame; wait before querying the UI tree.
         composeRule.waitForIdle()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule
+                .onAllNodes(androidx.compose.ui.test.hasText("Как играть"))
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
     }
 
     @Test

@@ -15,32 +15,106 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ru.pogman.questplatform.R
+import ru.pogman.questplatform.components.ActionMessage
 import ru.pogman.questplatform.components.CaseIntroduction
 import ru.pogman.questplatform.components.ScreenContent
+import ru.pogman.questplatform.components.SectionCard
+import ru.pogman.questplatform.domain.PlayerRun
 import ru.pogman.questplatform.theme.QuestTheme
+import ru.pogman.questplatform.viewmodel.ActionState
 
 @Composable
-fun PlayerHomeScreen(onInstructions: () -> Unit) {
+fun PlayerHomeScreen(
+    run: PlayerRun?,
+    action: ActionState,
+    onInstructions: () -> Unit,
+    onBriefing: () -> Unit,
+    onPhoto: () -> Unit,
+    onResult: () -> Unit,
+) {
     ScreenContent {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.player_title), style = MaterialTheme.typography.headlineLarge)
-            Text(stringResource(R.string.player_subtitle), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(R.string.player_title),
+                style = MaterialTheme.typography.headlineLarge,
+            )
+            Text(
+                stringResource(R.string.player_subtitle),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
-        CaseIntroduction()
-
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+        if (run == null) {
+            CaseIntroduction()
+            Card(
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
             ) {
-                Text(stringResource(R.string.game_waiting_title), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.game_waiting_description), style = MaterialTheme.typography.bodyLarge)
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        stringResource(R.string.game_waiting_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        stringResource(R.string.game_waiting_description),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
+        } else {
+            SectionCard(run.teamName) {
+                Text(run.gameTitle)
+                if (run.startedAt == null) {
+                    Text(stringResource(R.string.player_ready))
+                    Button(onClick = onBriefing, enabled = !action.busy) {
+                        Text(stringResource(R.string.briefing_action))
+                    }
+                } else {
+                    Text(
+                        stringResource(R.string.code_progress_label),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(run.quest.reward ?: "·", style = MaterialTheme.typography.headlineLarge)
+                    Text(
+                        stringResource(
+                            if (run.quest.solvedAt == null) R.string.progress_zero
+                            else R.string.progress_one
+                        )
+                    )
+                }
+            }
+            if (run.startedAt != null && run.finishedAt == null) {
+                SectionCard(run.quest.title) {
+                    Text(
+                        stringResource(
+                            if (run.quest.openedAt == null) R.string.quest_ready
+                            else R.string.quest_in_progress
+                        )
+                    )
+                    Button(onClick = onPhoto, enabled = !action.busy) {
+                        Text(stringResource(R.string.open_photo_action))
+                    }
+                }
+            }
+            if (run.finishedAt != null) {
+                Button(onClick = onResult, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.results_action))
+                }
             }
         }
 
+        ActionMessage(action)
+
         Button(onClick = onInstructions, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.instructions_action), modifier = Modifier.padding(vertical = 6.dp))
+            Text(
+                stringResource(R.string.instructions_action),
+                modifier = Modifier.padding(vertical = 6.dp),
+            )
         }
 
         Text(
@@ -55,6 +129,13 @@ fun PlayerHomeScreen(onInstructions: () -> Unit) {
 @Composable
 private fun PlayerHomePreview() {
     QuestTheme {
-        PlayerHomeScreen(onInstructions = {})
+        PlayerHomeScreen(
+            run = null,
+            action = ActionState(),
+            onInstructions = {},
+            onBriefing = {},
+            onPhoto = {},
+            onResult = {},
+        )
     }
 }

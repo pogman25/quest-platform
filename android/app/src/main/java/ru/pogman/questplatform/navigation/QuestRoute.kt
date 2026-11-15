@@ -4,12 +4,33 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 sealed interface QuestRoute : NavKey {
-    @Serializable
-    data object Player : QuestRoute
+    @Serializable data object Player : QuestRoute
 
-    @Serializable
-    data object Instructions : QuestRoute
+    @Serializable data object Instructions : QuestRoute
 
-    @Serializable
-    data object OrganizerEntry : QuestRoute
+    @Serializable data object OrganizerEntry : QuestRoute
+
+    @Serializable data object OrganizerGames : QuestRoute
+
+    @Serializable data object GameEditor : QuestRoute
+
+    @Serializable data class PrepareRun(val gameId: String) : QuestRoute
+
+    @Serializable data object RunHistory : QuestRoute
+
+    @Serializable data object PasswordChange : QuestRoute
+
+    @Serializable data class Briefing(val runId: String) : QuestRoute
+
+    @Serializable data object PhotoQuest : QuestRoute
+
+    @Serializable data object Result : QuestRoute
 }
+
+val NavKey.requiresOrganizer: Boolean
+    get() =
+        this == QuestRoute.OrganizerGames ||
+            this == QuestRoute.GameEditor ||
+            this is QuestRoute.PrepareRun ||
+            this == QuestRoute.RunHistory ||
+            this == QuestRoute.PasswordChange
