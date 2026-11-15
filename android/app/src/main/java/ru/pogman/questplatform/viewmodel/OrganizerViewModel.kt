@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import ru.pogman.questplatform.AppContainer
 import ru.pogman.questplatform.domain.Game
+import ru.pogman.questplatform.domain.QuestFailure
 import ru.pogman.questplatform.domain.normalizeAnswer
 
 data class OrganizerState(
@@ -84,14 +85,31 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
         clearError()
     }
 
-    fun importPhoto(uri: Uri) = perform {
-        access.requireOrganizer()
-        val reference = container.photos.import(uri)
-        access.requireOrganizer()
-        mutableEditor.value =
-            mutableEditor.value?.let { game ->
-                game.copy(photo = game.photo.copy(photoRef = reference))
+    fun reportPhotoFailure(failure: QuestFailure) = reportFailure(failure)
+
+    fun importPhoto(uri: Uri, gameId: String, fromCamera: Boolean = false) {
+        if (action.value.busy) {
+            if (fromCamera) container.cameraPhotos.discard(uri)
+            return
+        }
+        perform {
+            var imported: String? = null
+            try {
+                access.requireOrganizer()
+                if (mutableEditor.value?.id != gameId) return@perform
+                val reference = container.photos.import(uri)
+                imported = reference
+                access.requireOrganizer()
+                val game = mutableEditor.value
+                if (game?.id == gameId) {
+                    mutableEditor.value = game.copy(photo = game.photo.copy(photoRef = reference))
+                    imported = null
+                }
+            } finally {
+                imported?.let(container.photos::discard)
+                if (fromCamera) container.cameraPhotos.discard(uri)
             }
+        }
     }
 
     fun photoUri(game: Game): String = container.photos.displayUri(game.photo.photoRef)
@@ -122,6 +140,13 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
         repository.activeRun.first { it?.id == id }
         closeSession()
         channel.send(OrganizerEvent.HandedOver(id))
+    }
+
+    fun restartRun(id: String) = perform {
+        val restartedId = repository.restartRun(id)
+        repository.activeRun.first { it?.id == restartedId }
+        closeSession()
+        channel.send(OrganizerEvent.HandedOver(restartedId))
     }
 
     fun logout() {

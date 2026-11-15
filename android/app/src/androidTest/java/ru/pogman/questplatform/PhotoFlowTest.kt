@@ -1,7 +1,12 @@
 package ru.pogman.questplatform
 
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.text.AnnotatedString
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Before
@@ -67,6 +72,34 @@ class PhotoFlowTest {
         composeRule.onNodeWithText("Попыток: 2 · Ошибок: 1").assertExists()
         composeRule.onNodeWithText("книга", substring = true).assertExists()
         composeRule.onNodeWithText("ЛАМПА", substring = true).assertExists()
+        click("Сбросить результаты")
+        composeRule.onNodeWithText("Отмена").performClick()
+        composeRule.onNodeWithText("Попыток: 2 · Ошибок: 1").assertExists()
+        click("Сбросить результаты")
+        composeRule.onNodeWithText("Сбросить и начать заново").performClick()
+        waitFor("Начать расследование")
+        assertFalse(fixture.container.access.authorized.value)
+        runBlocking {
+            val id = fixture.container.database.quests().settings()!!.activeRunId!!
+            val restarted = fixture.container.database.quests().run(id)!!
+            assertEquals("Следопыты", restarted.run.teamName)
+            assertEquals("Пробное дело", restarted.run.gameTitle)
+            assertNull(restarted.run.startedAt)
+            assertNull(restarted.run.finishedAt)
+            assertTrue(restarted.attempts.isEmpty())
+        }
+        click("Начать расследование")
+        click("Открыть улику")
+        waitFor("Какой предмет исчез?")
+        composeRule
+            .onNodeWithText("Какой предмет исчез?")
+            .assert(
+                SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString(""))
+            )
+        fill("Какой предмет исчез?", "лампа")
+        click("Проверить ответ")
+        waitFor("Дело раскрыто!")
+        composeRule.onNodeWithTag("finalCode").assertTextEquals("0")
     }
 
     @Test
@@ -110,12 +143,23 @@ class PhotoFlowTest {
 
     private fun click(text: String, scroll: Boolean = true) {
         waitFor(text)
+        // Finish the IME animation before scrolling and calculating touch coordinates.
+        val activity = composeRule.activity
+        composeRule.runOnUiThread {
+            WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+                .hide(WindowInsetsCompat.Type.ime())
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            ViewCompat.getRootWindowInsets(activity.window.decorView)
+                ?.getInsets(WindowInsetsCompat.Type.ime())
+                ?.bottom == 0
+        }
         composeRule.waitForIdle()
         val node = composeRule.onNodeWithText(text)
         if (scroll) {
             node.performScrollTo()
         }
-        node.assertIsEnabled().performClick()
+        node.assertIsDisplayed().assertIsEnabled().performClick()
     }
 
     private fun fill(label: String, value: String) {

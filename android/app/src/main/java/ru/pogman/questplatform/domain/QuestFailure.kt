@@ -13,6 +13,7 @@ enum class QuestFailure {
     RUN_NOT_FOUND,
     RUN_NOT_STARTED,
     PHOTO_INVALID,
+    PHOTO_SOURCE_UNAVAILABLE,
     STORAGE_ERROR,
 }
 

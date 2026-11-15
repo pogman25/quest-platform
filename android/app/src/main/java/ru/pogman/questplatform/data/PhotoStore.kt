@@ -26,6 +26,12 @@ class PhotoStore(
     fun exists(reference: String): Boolean =
         reference == DEMO_PHOTO || runCatching { resolve(reference).isFile }.getOrDefault(false)
 
+    fun discard(reference: String) {
+        if (reference != DEMO_PHOTO) {
+            resolve(reference).delete()
+        }
+    }
+
     suspend fun import(uri: Uri): String =
         withContext(Dispatchers.IO) {
             directory.mkdirs()

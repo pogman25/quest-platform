@@ -30,6 +30,11 @@ class PlayerViewModel(private val repository: QuestRepository) : ActionViewModel
     private val incorrect = MutableStateFlow(false)
     val incorrectAnswer = incorrect.asStateFlow()
 
+    fun resetInteraction() {
+        cancelPending()
+        incorrect.value = false
+    }
+
     fun start() = perform {
         repository.startRun()
         channel.send(PlayerEvent.Started)

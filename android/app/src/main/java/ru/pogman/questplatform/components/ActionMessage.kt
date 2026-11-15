@@ -33,5 +33,6 @@ private fun errorMessage(error: QuestFailure): Int =
         QuestFailure.RUN_NOT_FOUND -> R.string.error_run_not_found
         QuestFailure.RUN_NOT_STARTED -> R.string.error_run_not_started
         QuestFailure.PHOTO_INVALID -> R.string.error_photo
+        QuestFailure.PHOTO_SOURCE_UNAVAILABLE -> R.string.error_photo_source
         QuestFailure.STORAGE_ERROR -> R.string.error_storage
     }

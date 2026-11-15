@@ -21,6 +21,10 @@ abstract class ActionViewModel : ViewModel() {
         mutableAction.value = mutableAction.value.copy(error = null)
     }
 
+    protected fun reportFailure(failure: QuestFailure) {
+        mutableAction.value = mutableAction.value.copy(error = failure)
+    }
+
     protected fun cancelPending() {
         pending?.cancel()
         pending = null

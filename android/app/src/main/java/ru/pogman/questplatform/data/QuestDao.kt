@@ -60,4 +60,6 @@ interface QuestDao {
     fun observeRuns(): Flow<List<RunWithQuests>>
 
     @Insert suspend fun insertAttempt(row: AttemptRow)
+
+    @Query("DELETE FROM runs WHERE id = :id") suspend fun deleteRun(id: String)
 }

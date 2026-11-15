@@ -60,7 +60,9 @@
     <string name="photo_title">Фото до метели</string>
     <string name="photo_description">Снимок комнаты до исчезновения предмета</string>
     <string name="photo_load_error">Не удалось открыть снимок. Обратитесь к ведущему.</string>
-    <string name="choose_photo_action">Выбрать фото</string>
+    <string name="choose_photo_action">Из галереи</string>
+    <string name="take_photo_action">Снять фото</string>
+    <string name="error_photo_source">Не удалось открыть галерею или камеру. Проверьте, что на телефоне установлено приложение для этого действия.</string>
     <string name="photo_preparation_hint">Для своей игры выберите снимок комнаты с предметом, затем уберите предмет перед началом. Иллюстрация подходит для пробного прохождения.</string>
     <string name="instruction_label">Подсказка игрокам</string>
     <string name="answers_label">Допустимые ответы</string>
@@ -79,6 +81,10 @@
     <string name="run_prepared">Ожидает начала</string>
     <string name="attempt_statistics">Попыток: %1$d · Ошибок: %2$d</string>
     <string name="select_run_action">Открыть команде</string>
+    <string name="restart_run_action">Сбросить результаты</string>
+    <string name="restart_run_title">Начать прохождение заново?</string>
+    <string name="restart_run_description">У команды «%1$s» будут удалены все ответы, открытая цифра и время. Название команды, снимок и настройки сохранятся. После сброса откроется инструктаж команды.</string>
+    <string name="restart_run_confirm">Сбросить и начать заново</string>
     <string name="show_attempts_action">Показать ответы</string>
     <string name="hide_attempts_action">Скрыть ответы</string>
     <string name="attempt_correct">Верно</string>

@@ -141,6 +141,53 @@ class RepositoryTest {
     }
 
     @Test
+    fun restartClearsOnlySelectedTeamAndKeepsItsSnapshotAfterGameDeletion() = runBlocking {
+        val game = repository.loadGame("detective-photo-demo")
+        val selectedId = repository.prepareRun(game.id, "Повторная команда", "3")
+        repository.startRun()
+        repository.openPhoto()
+        repository.submitAnswer("книга")
+        repository.submitAnswer("лампа")
+        val snapshot = database.quests().run(selectedId)!!
+        val otherId = repository.prepareRun(game.id, "Другая команда", "7")
+        repository.startRun()
+        repository.openPhoto()
+        repository.submitAnswer("стул")
+        val other = database.quests().run(otherId)!!
+        repository.deleteGame(game.id)
+        access.logout()
+        expectFailure(QuestFailure.ORGANIZER_REQUIRED) { repository.restartRun(selectedId) }
+        assertEquals(2, database.quests().run(selectedId)!!.attempts.size)
+        access.login("password1")
+        clock.now = 45_000
+        val restartedId = repository.restartRun(selectedId)
+        assertNull(database.quests().run(selectedId))
+        val restarted = database.quests().run(restartedId)!!
+        assertEquals(snapshot.run.teamName, restarted.run.teamName)
+        assertEquals(snapshot.run.gameTitle, restarted.run.gameTitle)
+        assertEquals(snapshot.run.story, restarted.run.story)
+        assertEquals(snapshot.run.rules, restarted.run.rules)
+        assertEquals(snapshot.quests.single().config, restarted.quests.single().config)
+        assertEquals(snapshot.quests.single().digit, restarted.quests.single().digit)
+        assertNull(restarted.run.startedAt)
+        assertNull(restarted.run.finishedAt)
+        assertNull(restarted.quests.single().openedAt)
+        assertNull(restarted.quests.single().solvedAt)
+        assertTrue(restarted.attempts.isEmpty())
+        assertEquals(other, database.quests().run(otherId))
+        assertEquals(restartedId, repository.activeRun.first()!!.id)
+        assertNull(repository.activeRun.first()!!.quest.reward)
+        assertNull(repository.activeRun.first()!!.finalCode)
+        assertEquals(2, repository.history.first().size)
+        expectFailure(QuestFailure.RUN_NOT_STARTED) { repository.submitAnswer("лампа") }
+        repository.startRun()
+        repository.openPhoto()
+        assertTrue(repository.submitAnswer("лампа"))
+        assertEquals("3", repository.activeRun.first()!!.finalCode)
+        assertEquals(1, database.quests().run(restartedId)!!.attempts.size)
+    }
+
+    @Test
     fun deletingAllGamesDoesNotReseedAndInvalidInputCannotCreateRuns() = runBlocking {
         expectFailure(QuestFailure.CODE_INVALID) {
             repository.prepareRun("detective-photo-demo", "Команда", "12")

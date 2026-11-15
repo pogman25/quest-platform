@@ -1,8 +1,5 @@
 package ru.pogman.questplatform
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -106,17 +103,12 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
         backStack.add(QuestRoute.PasswordChange)
         Unit
     }
-    val photoPicker =
-        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-            if (uri != null) {
-                organizer.importPhoto(uri)
-            }
-        }
-    val handleChoosePhoto = {
-        photoPicker.launch(
-            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+    val photoActions =
+        rememberPhotoActions(
+            editor?.id,
+            access.authorized && currentRoute == QuestRoute.GameEditor && !organizerAction.busy,
+            organizer,
         )
-    }
 
     LaunchedEffect(organizer) {
         organizer.events.collect { event ->
@@ -130,6 +122,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                 OrganizerEvent.GameSaved,
                 OrganizerEvent.PasswordChanged -> backStack.removeLastOrNull()
                 is OrganizerEvent.HandedOver -> {
+                    player.resetInteraction()
                     backStack.clear()
                     backStack.add(QuestRoute.Player)
                     backStack.add(QuestRoute.Briefing(event.runId))
@@ -258,7 +251,8 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                                 organizer.photoUri(game),
                                                 organizerAction,
                                                 organizer::updateGame,
-                                                handleChoosePhoto,
+                                                photoActions.gallery,
+                                                photoActions.camera,
                                                 organizer::saveGame,
                                             )
                                         } ?: LoadingContent()
@@ -282,6 +276,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                             history,
                                             organizerAction,
                                             organizer::selectRun,
+                                            organizer::restartRun,
                                         )
                                     }
                                 }

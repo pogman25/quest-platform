@@ -156,6 +156,33 @@ class QuestRepository(
         }
     }
 
+    suspend fun restartRun(id: String): String {
+        access.requireOrganizer()
+        return database.withTransaction {
+            access.requireOrganizer()
+            val stored = dao.run(id) ?: throw QuestException(QuestFailure.RUN_NOT_FOUND)
+            // A fresh identity also clears saved UI drafts belonging to the previous attempt.
+            // Copy the run snapshot: the source game may have changed or been deleted.
+            val restartedId = UUID.randomUUID().toString()
+            dao.insertRun(
+                stored.run.copy(
+                    id = restartedId,
+                    createdAt = clock.millis(),
+                    startedAt = null,
+                    finishedAt = null,
+                )
+            )
+            stored.quests.forEach { quest ->
+                dao.insertRunQuest(
+                    quest.copy(runId = restartedId, openedAt = null, solvedAt = null)
+                )
+            }
+            dao.deleteRun(id)
+            dao.saveSettings(SettingsRow(activeRunId = restartedId))
+            restartedId
+        }
+    }
+
     suspend fun startRun() {
         database.withTransaction {
             val stored = currentRun()

@@ -18,10 +18,16 @@ import ru.pogman.questplatform.domain.RunSummary
 private val logDate = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")
 
 @Composable
-fun RunHistoryCard(run: RunSummary, enabled: Boolean, onSelect: (String) -> Unit) {
+fun RunHistoryCard(
+    run: RunSummary,
+    enabled: Boolean,
+    onSelect: (String) -> Unit,
+    onRestart: (RunSummary) -> Unit,
+) {
     var expanded by rememberSaveable(run.id) { mutableStateOf(false) }
     val handleExpand = { expanded = !expanded }
     val handleSelect = { onSelect(run.id) }
+    val handleRestart = { onRestart(run) }
 
     SectionCard(run.teamName) {
         Text(run.gameTitle)
@@ -72,6 +78,11 @@ fun RunHistoryCard(run: RunSummary, enabled: Boolean, onSelect: (String) -> Unit
         }
         Button(onClick = handleSelect, enabled = enabled) {
             Text(stringResource(R.string.select_run_action))
+        }
+        if (run.startedAt != null || run.attempts > 0) {
+            TextButton(onClick = handleRestart, enabled = enabled) {
+                Text(stringResource(R.string.restart_run_action))
+            }
         }
     }
 }
