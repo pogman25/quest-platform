@@ -27,7 +27,6 @@ import ru.pogman.questplatform.viewmodel.ActionState
 fun PlayerHomeScreen(
     run: PlayerRun?,
     action: ActionState,
-    onInstructions: () -> Unit,
     onBriefing: () -> Unit,
     onPhoto: () -> Unit,
     onResult: () -> Unit,
@@ -110,13 +109,6 @@ fun PlayerHomeScreen(
 
         ActionMessage(action)
 
-        Button(onClick = onInstructions, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                stringResource(R.string.instructions_action),
-                modifier = Modifier.padding(vertical = 6.dp),
-            )
-        }
-
         Text(
             stringResource(R.string.app_tagline),
             style = MaterialTheme.typography.bodyMedium,
@@ -132,7 +124,6 @@ private fun PlayerHomePreview() {
         PlayerHomeScreen(
             run = null,
             action = ActionState(),
-            onInstructions = {},
             onBriefing = {},
             onPhoto = {},
             onResult = {},

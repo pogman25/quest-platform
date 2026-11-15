@@ -18,6 +18,7 @@ data class PlayerRun(
     val startedAt: Long?,
     val finishedAt: Long?,
     val quest: PlayerQuest,
+    val gameId: String,
 ) {
     val finalCode: String?
         get() = quest.reward.takeIf { finishedAt != null }

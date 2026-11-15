@@ -27,29 +27,27 @@ fun GameEditorScreen(
     game: Game,
     photoUri: String,
     action: ActionState,
-    onChange: (Game) -> Unit,
+    onChange: ((Game) -> Game) -> Unit,
     onChoosePhoto: () -> Unit,
     onTakePhoto: () -> Unit,
     onSave: () -> Unit,
 ) {
     var answers by
         rememberSaveable(game.id) { mutableStateOf(game.photo.answers.joinToString(", ")) }
-    val handleTitle: (String) -> Unit = { onChange(game.copy(title = it.take(80))) }
-    val handleStory: (String) -> Unit = { onChange(game.copy(story = it.take(10_000))) }
-    val handleRules: (String) -> Unit = { onChange(game.copy(rules = it.take(10_000))) }
-    val handleInstruction: (String) -> Unit = {
-        onChange(game.copy(photo = game.photo.copy(instruction = it.take(500))))
+    val handleTitle: (String) -> Unit = { value -> onChange { it.copy(title = value.take(80)) } }
+    val handleStory: (String) -> Unit = { value ->
+        onChange { it.copy(story = value.take(10_000)) }
+    }
+    val handleRules: (String) -> Unit = { value ->
+        onChange { it.copy(rules = value.take(10_000)) }
+    }
+    val handleInstruction: (String) -> Unit = { value ->
+        onChange { it.copy(photo = it.photo.copy(instruction = value.take(500))) }
     }
     val handleAnswers: (String) -> Unit = {
         answers = it.take(2_000)
-        onChange(
-            game.copy(
-                photo =
-                    game.photo.copy(
-                        answers = answers.split(',').map(String::trim).filter(String::isNotEmpty)
-                    )
-            )
-        )
+        val accepted = answers.split(',').map(String::trim).filter(String::isNotEmpty)
+        onChange { it.copy(photo = it.photo.copy(answers = accepted)) }
     }
 
     ScreenContent {
@@ -108,6 +106,7 @@ fun GameEditorScreen(
             Text(stringResource(R.string.answers_hint))
         }
         ActionMessage(action)
+        Text(stringResource(R.string.game_save_hint))
         Button(onClick = onSave, enabled = !action.busy, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.save_game_action))
         }

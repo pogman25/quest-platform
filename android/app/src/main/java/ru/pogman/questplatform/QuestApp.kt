@@ -21,7 +21,6 @@ import ru.pogman.questplatform.navigation.QuestRoute
 import ru.pogman.questplatform.navigation.requiresOrganizer
 import ru.pogman.questplatform.screens.BriefingScreen
 import ru.pogman.questplatform.screens.GameEditorScreen
-import ru.pogman.questplatform.screens.InstructionsScreen
 import ru.pogman.questplatform.screens.OrganizerEntryScreen
 import ru.pogman.questplatform.screens.OrganizerGamesScreen
 import ru.pogman.questplatform.screens.PasswordChangeScreen
@@ -50,11 +49,31 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
     val backStack = rememberNavBackStack(QuestRoute.Player)
     val currentRoute = backStack.last()
 
-    val handlePlayer = {
-        organizer.logout()
+    val showNotebook = {
         backStack.clear()
         backStack.add(QuestRoute.Player)
         Unit
+    }
+    val returnToPlayer = {
+        while (
+            backStack.size > 1 &&
+                (backStack.last().requiresOrganizer ||
+                    backStack.last() == QuestRoute.OrganizerEntry)
+        ) {
+            backStack.removeLastOrNull()
+        }
+    }
+    val handlePlayer = {
+        if (currentRoute == QuestRoute.GameEditor) {
+            organizer.saveAndSwitchToPlayer()
+        } else {
+            organizer.leaveOrganizer()
+            returnToPlayer()
+        }
+    }
+    val handleLogout = {
+        organizer.logout()
+        returnToPlayer()
     }
     val handleBack = {
         if (
@@ -64,6 +83,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
         ) {
             handlePlayer()
         } else if (backStack.size > 1) {
+            if (currentRoute == QuestRoute.GameEditor) organizer.leaveOrganizer()
             organizer.clearError()
             player.clearError()
             backStack.removeLastOrNull()
@@ -71,14 +91,11 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
         Unit
     }
     val handleOrganizer = {
+        player.resetInteraction()
         organizer.clearError()
         backStack.add(
             if (access.authorized) QuestRoute.OrganizerGames else QuestRoute.OrganizerEntry
         )
-        Unit
-    }
-    val handleInstructions = {
-        backStack.add(QuestRoute.Instructions)
         Unit
     }
     val handleBriefing = {
@@ -121,6 +138,11 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                 OrganizerEvent.EditGame -> backStack.add(QuestRoute.GameEditor)
                 OrganizerEvent.GameSaved,
                 OrganizerEvent.PasswordChanged -> backStack.removeLastOrNull()
+                OrganizerEvent.PlayerMode -> returnToPlayer()
+                is OrganizerEvent.PrepareGame -> {
+                    backStack.removeLastOrNull()
+                    backStack.add(QuestRoute.PrepareRun(event.gameId))
+                }
                 is OrganizerEvent.HandedOver -> {
                     player.resetInteraction()
                     backStack.clear()
@@ -129,6 +151,9 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                 }
             }
         }
+    }
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == QuestRoute.Instructions) showNotebook()
     }
     LaunchedEffect(player) {
         player.events.collect { event ->
@@ -156,7 +181,6 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
 
     val title =
         when (currentRoute) {
-            QuestRoute.Instructions -> R.string.instructions_title
             QuestRoute.OrganizerEntry -> R.string.organizer_title
             QuestRoute.OrganizerGames -> R.string.organizer_games_title
             QuestRoute.GameEditor -> R.string.game_settings_title
@@ -179,9 +203,14 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                         else title,
                     canGoBack = backStack.size > 1,
                     onBack = handleBack,
-                    onOrganizer = handleOrganizer,
+                    onOrganizer =
+                        handleOrganizer.takeIf {
+                            !currentRoute.requiresOrganizer &&
+                                currentRoute != QuestRoute.OrganizerEntry
+                        },
                     onPlayer =
                         handlePlayer.takeIf { currentRoute.requiresOrganizer && access.authorized },
+                    onLogout = handleLogout.takeIf { access.authorized },
                 )
             }
         ) { contentPadding ->
@@ -212,14 +241,13 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                     PlayerHomeScreen(
                                         run,
                                         playerAction,
-                                        handleInstructions,
                                         handleBriefing,
                                         player::openPhoto,
                                         handleResult,
                                     )
                                 }
                                 entry<QuestRoute.Instructions> {
-                                    InstructionsScreen(onReturn = handleBack)
+                                    LoadingContent()
                                 }
                                 entry<QuestRoute.OrganizerEntry> {
                                     OrganizerEntryScreen(
@@ -291,7 +319,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                 entry<QuestRoute.Briefing> { route ->
                                     val selected = run?.takeIf { it.id == route.runId }
                                     if (selected?.finishedAt != null)
-                                        ResultScreen(selected, handlePlayer)
+                                        ResultScreen(selected, showNotebook)
                                     else if (selected != null)
                                         BriefingScreen(selected, playerAction, player::start)
                                     else LoadingContent()
@@ -309,7 +337,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                 }
                                 entry<QuestRoute.Result> {
                                     run?.takeIf { it.finishedAt != null }
-                                        ?.let { ResultScreen(it, handlePlayer) } ?: LoadingContent()
+                                        ?.let { ResultScreen(it, showNotebook) } ?: LoadingContent()
                                 }
                             },
                     )

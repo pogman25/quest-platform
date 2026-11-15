@@ -22,7 +22,7 @@ class PhotoFlowTest {
     @Before
     fun waitForHome() {
         composeRule.waitForIdle()
-        waitFor("Как играть")
+        waitFor("Блокнот команды")
     }
 
     @Test
@@ -39,7 +39,7 @@ class PhotoFlowTest {
         fill("Цифра замка", "0")
         click("Передать команде")
         waitFor("Начать расследование")
-        assertFalse(fixture.container.access.authorized.value)
+        assertTrue(fixture.container.access.authorized.value)
         runBlocking {
             val id = fixture.container.database.quests().settings()!!.activeRunId!!
             assertNull(fixture.container.database.quests().run(id)!!.run.startedAt)
@@ -61,6 +61,9 @@ class PhotoFlowTest {
         composeRule.onNodeWithTag("finalCode").assertTextEquals("0")
         click("К блокноту команды")
         click("Ведущий", scroll = false)
+        waitFor("Создать игру")
+        click("Выйти", scroll = false)
+        click("Ведущий", scroll = false)
         waitFor("Вход ведущего")
         fill("Пароль", "wrong-password")
         click("Войти")
@@ -78,7 +81,7 @@ class PhotoFlowTest {
         click("Сбросить результаты")
         composeRule.onNodeWithText("Сбросить и начать заново").performClick()
         waitFor("Начать расследование")
-        assertFalse(fixture.container.access.authorized.value)
+        assertTrue(fixture.container.access.authorized.value)
         runBlocking {
             val id = fixture.container.database.quests().settings()!!.activeRunId!!
             val restarted = fixture.container.database.quests().run(id)!!
@@ -103,7 +106,7 @@ class PhotoFlowTest {
     }
 
     @Test
-    fun organizerSessionSurvivesRotationAndClosesWhenReturningToPlayer() {
+    fun organizerSessionSurvivesModeSwitchAndClosesOnLogout() {
         click("Ведущий", scroll = false)
         fill("Пароль", "password1")
         fill("Повторите пароль", "password1")
@@ -113,7 +116,11 @@ class PhotoFlowTest {
         waitFor("Создать игру")
         assertTrue(fixture.container.access.authorized.value)
         click("К игре", scroll = false)
-        waitFor("Как играть")
+        waitFor("Блокнот команды")
+        assertTrue(fixture.container.access.authorized.value)
+        click("Ведущий", scroll = false)
+        waitFor("Создать игру")
+        click("Выйти", scroll = false)
         assertFalse(fixture.container.access.authorized.value)
         click("Ведущий", scroll = false)
         waitFor("Вход ведущего")

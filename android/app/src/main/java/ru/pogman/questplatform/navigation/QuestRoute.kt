@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 sealed interface QuestRoute : NavKey {
     @Serializable data object Player : QuestRoute
 
+    // Redirect old saved navigation state after removing the generic instructions screen.
     @Serializable data object Instructions : QuestRoute
 
     @Serializable data object OrganizerEntry : QuestRoute

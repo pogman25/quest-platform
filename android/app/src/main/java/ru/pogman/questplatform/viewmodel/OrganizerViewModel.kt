@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import ru.pogman.questplatform.AppContainer
 import ru.pogman.questplatform.domain.Game
 import ru.pogman.questplatform.domain.QuestFailure
@@ -29,6 +30,10 @@ sealed interface OrganizerEvent {
     data object GameSaved : OrganizerEvent
 
     data object PasswordChanged : OrganizerEvent
+
+    data object PlayerMode : OrganizerEvent
+
+    data class PrepareGame(val gameId: String) : OrganizerEvent
 
     data class HandedOver(val runId: String) : OrganizerEvent
 }
@@ -77,11 +82,12 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
         channel.send(OrganizerEvent.EditGame)
     }
 
-    fun updateGame(game: Game) {
+    fun updateGame(transform: (Game) -> Game) {
         if (!access.authorized.value) {
             return
         }
-        mutableEditor.value = game
+        // Apply field edits to the latest draft, including a photo imported asynchronously.
+        mutableEditor.update { game -> game?.let(transform) }
         clearError()
     }
 
@@ -115,7 +121,21 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
     fun photoUri(game: Game): String = container.photos.displayUri(game.photo.photoRef)
 
     fun saveGame() = perform {
-        val game = mutableEditor.value ?: return@perform
+        saveDraft()
+        channel.send(OrganizerEvent.GameSaved)
+    }
+
+    fun saveAndSwitchToPlayer() = perform {
+        val gameId = saveDraft() ?: return@perform
+        if (repository.activeRun.first()?.gameId == gameId) {
+            channel.send(OrganizerEvent.PlayerMode)
+        } else {
+            channel.send(OrganizerEvent.PrepareGame(gameId))
+        }
+    }
+
+    private suspend fun saveDraft(): String? {
+        val game = mutableEditor.value ?: return null
         val answers =
             game.photo.answers
                 .map(String::trim)
@@ -123,7 +143,13 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
                 .distinctBy(::normalizeAnswer)
         repository.saveGame(game.copy(photo = game.photo.copy(answers = answers)))
         mutableEditor.value = null
-        channel.send(OrganizerEvent.GameSaved)
+        return game.id
+    }
+
+    fun leaveOrganizer() {
+        cancelPending()
+        mutableEditor.value = null
+        clearError()
     }
 
     fun deleteGame(id: String) = perform { repository.deleteGame(id) }
@@ -131,32 +157,23 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
     fun prepareRun(gameId: String, teamName: String, code: String) = perform {
         val id = repository.prepareRun(gameId, teamName, code)
         repository.activeRun.first { it?.id == id }
-        closeSession()
         channel.send(OrganizerEvent.HandedOver(id))
     }
 
     fun selectRun(id: String) = perform {
         repository.selectRun(id)
         repository.activeRun.first { it?.id == id }
-        closeSession()
         channel.send(OrganizerEvent.HandedOver(id))
     }
 
     fun restartRun(id: String) = perform {
         val restartedId = repository.restartRun(id)
         repository.activeRun.first { it?.id == restartedId }
-        closeSession()
         channel.send(OrganizerEvent.HandedOver(restartedId))
     }
 
     fun logout() {
-        cancelPending()
-        closeSession()
-    }
-
-    private fun closeSession() {
+        leaveOrganizer()
         access.logout()
-        mutableEditor.value = null
-        clearError()
     }
 }

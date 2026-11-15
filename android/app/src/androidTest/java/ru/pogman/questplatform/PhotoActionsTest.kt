@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import java.io.FileNotFoundException
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.*
@@ -91,6 +92,9 @@ class PhotoActionsTest {
 
     @Test
     fun galleryRequestsLocalImagesAndCopiesTheResultIntoTheGame() {
+        runBlocking {
+            fixture.container.repository.prepareRun("detective-photo-demo", "Фото-команда", "4")
+        }
         writeImage(Uri.fromFile(input))
         registry.galleryResult = Uri.fromFile(input)
         click("Из галереи")
@@ -107,6 +111,10 @@ class PhotoActionsTest {
             val saved = fixture.container.repository.loadGame("detective-photo-demo")
             assertEquals(reference, saved.photo.photoRef)
             assertTrue(fixture.container.photos.exists(reference))
+            assertEquals(
+                fixture.container.photos.displayUri(reference),
+                fixture.container.repository.activeRun.first()!!.quest.photoUri,
+            )
         }
     }
 

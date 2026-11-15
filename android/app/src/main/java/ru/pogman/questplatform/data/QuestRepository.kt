@@ -102,6 +102,24 @@ class QuestRepository(
         database.withTransaction {
             access.requireOrganizer()
             writeGame(game)
+            val activeId = dao.settings()?.activeRunId
+            val active = activeId?.let { dao.run(it) }
+            if (active != null && active.run.gameId == game.id && active.run.finishedAt == null) {
+                // Editing the active unfinished game should immediately affect its photo and rules.
+                // Other teams and completed results keep their snapshots.
+                dao.updateRun(
+                    active.run.copy(
+                        gameTitle = game.title.trim(),
+                        story = game.story,
+                        rules = game.rules,
+                    )
+                )
+                active.quests
+                    .filter { it.questId == "photo" && it.solvedAt == null }
+                    .forEach { quest ->
+                        dao.updateRunQuest(quest.copy(config = json.encodeToString(game.photo)))
+                    }
+            }
         }
     }
 
@@ -162,7 +180,10 @@ class QuestRepository(
             access.requireOrganizer()
             val stored = dao.run(id) ?: throw QuestException(QuestFailure.RUN_NOT_FOUND)
             // A fresh identity also clears saved UI drafts belonging to the previous attempt.
-            // Copy the run snapshot: the source game may have changed or been deleted.
+            // Retest with the saved game settings; keep the snapshot if its source was deleted.
+            val game =
+                if (dao.game(stored.run.gameId) != null) loadGame(stored.run.gameId) else null
+            game?.let(::validateGame)
             val restartedId = UUID.randomUUID().toString()
             dao.insertRun(
                 stored.run.copy(
@@ -170,11 +191,22 @@ class QuestRepository(
                     createdAt = clock.millis(),
                     startedAt = null,
                     finishedAt = null,
+                    gameTitle = game?.title ?: stored.run.gameTitle,
+                    story = game?.story ?: stored.run.story,
+                    rules = game?.rules ?: stored.run.rules,
                 )
             )
             stored.quests.forEach { quest ->
                 dao.insertRunQuest(
-                    quest.copy(runId = restartedId, openedAt = null, solvedAt = null)
+                    quest.copy(
+                        runId = restartedId,
+                        openedAt = null,
+                        solvedAt = null,
+                        config =
+                            if (quest.questId == "photo" && game != null)
+                                json.encodeToString(game.photo)
+                            else quest.config,
+                    )
                 )
             }
             dao.deleteRun(id)
@@ -291,6 +323,7 @@ class QuestRepository(
                 quest.solvedAt,
                 quest.digit.takeIf { quest.solvedAt != null },
             ),
+            run.gameId,
         )
     }
 

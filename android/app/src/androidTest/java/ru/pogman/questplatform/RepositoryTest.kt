@@ -48,13 +48,15 @@ class RepositoryTest {
     }
 
     @Test
-    fun snapshotsSurviveSourceChangesAndTimingAndAttemptsAreIdempotent() = runBlocking {
+    fun inactiveRunKeepsSnapshotAndTimingAndAttemptsAreIdempotent() = runBlocking {
         val game = repository.loadGame("detective-photo-demo")
         val id = repository.prepareRun(game.id, "Команда 1", "0")
+        repository.prepareRun(game.id, "Другая команда", "8")
         repository.saveGame(
             game.copy(title = "Изменённая игра", photo = game.photo.copy(answers = listOf("книга")))
         )
         repository.deleteGame(game.id)
+        repository.selectRun(id)
         assertEquals(game.title, repository.activeRun.first()!!.gameTitle)
         assertNull(repository.activeRun.first()!!.quest.reward)
         assertNull(repository.activeRun.first()!!.finalCode)
@@ -79,7 +81,7 @@ class RepositoryTest {
         assertEquals(20_000L, result.run.finishedAt)
         assertEquals(6, result.attempts.size)
         assertEquals("0", repository.activeRun.first()!!.finalCode)
-        val history = repository.history.first().single()
+        val history = repository.history.first().single { it.id == id }
         assertEquals(5, history.incorrectAttempts)
         assertEquals(6, history.log.size)
     }
