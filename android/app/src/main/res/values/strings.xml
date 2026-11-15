@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="ru">
+    <string name="app_name">Бюро квестов</string>
+    <string name="app_tagline">Игры за пределами экрана</string>
+    <string name="organizer_action">Ведущий</string>
+    <string name="back_action">Назад</string>
+    <string name="player_title">Блокнот команды</string>
+    <string name="player_subtitle">Наблюдайте. Исследуйте. Разгадывайте.</string>
+    <string name="case_eyebrow">ВАШЕ СЛЕДУЮЩЕЕ РАССЛЕДОВАНИЕ</string>
+    <string name="case_title">У каждой тайны\nесть свой код</string>
+    <string name="case_description">Ищите улики в комнате, решайте загадки и открывайте цифры настоящего замка.</string>
+    <string name="game_waiting_title">Дело ещё не открыто</string>
+    <string name="game_waiting_description">Передайте телефон ведущему. Он подготовит расследование для вашей команды.</string>
+    <string name="instructions_action">Как играть</string>
+    <string name="instructions_title">Правила расследования</string>
+    <string name="instructions_intro">Работайте вместе — внимательность каждого поможет раскрыть дело.</string>
+    <string name="instructions_search_title">Исследуйте комнату</string>
+    <string name="instructions_search_description">Читайте подсказки, находите предметы, собирайте пазлы и сканируйте метки.</string>
+    <string name="instructions_solve_title">Открывайте цифры</string>
+    <string name="instructions_solve_description">Каждая решённая улика даёт одну цифру и её место в коде. Выбирайте задания в любом порядке.</string>
+    <string name="instructions_finish_title">Соберите код</string>
+    <string name="instructions_finish_description">Когда все улики раскрыты, введите получившуюся комбинацию в настоящий кодовый замок.</string>
+    <string name="instructions_timing_title">Игра идёт на время</string>
+    <string name="instructions_timing_description">Отсчёт начнётся после инструктажа, когда команда нажмёт «Начать расследование». Общее время вы увидите в финале.</string>
+    <string name="instructions_return_action">Всё понятно</string>
+    <string name="organizer_title">Режим ведущего</string>
+    <string name="organizer_eyebrow">ДЛЯ ТОГО, КТО ПРИДУМЫВАЕТ ИСТОРИИ</string>
+    <string name="organizer_heading">Хорошая тайна\nначинается с вас</string>
+    <string name="organizer_description">Подготовьте задания и реквизит, а затем передайте телефон команде.</string>
+    <string name="organizer_setup_title">Первый запуск</string>
+    <string name="organizer_setup_description">Для доступа к играм и настройкам нужно задать пароль ведущего.</string>
+    <string name="organizer_setup_action">Задать пароль</string>
+    <string name="organizer_privacy_note">Настройки игр и результаты будут храниться на этом телефоне.</string>
+    <string name="organizer_return_action">Вернуться к игре</string>
+</resources>

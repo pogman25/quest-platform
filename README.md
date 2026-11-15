@@ -1,5 +1,9 @@
 # Бюро квестов
 
+Новый Android MVP находится в [android/](android/README.md): Kotlin, Jetpack Compose, два режима и локальные данные. Сейчас подготовлен первый этап — оболочка, тема и навигация. Инструкции по сборке, запуску на Samsung Galaxy S10e и разбор кода находятся в [Android README](android/README.md).
+
+Ниже описана существующая веб-версия, которая служит источником требований и механик для Android MVP.
+
 Админка на React и TypeScript, API на Express, база PostgreSQL. Express обслуживает API и веб-сборку с одного адреса.
 
 ## Запуск в Docker
