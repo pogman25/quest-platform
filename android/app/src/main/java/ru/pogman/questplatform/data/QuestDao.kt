@@ -26,6 +26,20 @@ interface QuestDao {
 
     @Upsert suspend fun saveSettings(row: SettingsRow)
 
+    @Query(
+        """UPDATE app_settings SET activeRunId = NULL
+        WHERE id = 1 AND activeRunId IN (SELECT id FROM runs WHERE gameId = :gameId)"""
+    )
+    suspend fun clearActiveRunForGame(gameId: String)
+
+    @Query(
+        """UPDATE app_settings SET activeRunId = NULL
+        WHERE id = 1 AND activeRunId NOT IN (
+            SELECT runs.id FROM runs INNER JOIN games ON games.id = runs.gameId
+        )"""
+    )
+    suspend fun clearActiveRunWithoutGame()
+
     @Query("SELECT * FROM games ORDER BY createdAt DESC, id")
     @Transaction
     fun observeGames(): Flow<List<GameWithQuests>>

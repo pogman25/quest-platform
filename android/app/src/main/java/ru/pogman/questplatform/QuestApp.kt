@@ -199,6 +199,17 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
             }
         }
     }
+    LaunchedEffect(playerLoading, run?.id) {
+        if (!playerLoading && run == null) {
+            player.resetInteraction()
+            backStack.removeAll {
+                it is QuestRoute.Briefing ||
+                    it is QuestRoute.QuestDetails ||
+                    it == QuestRoute.PhotoQuest ||
+                    it == QuestRoute.Result
+            }
+        }
+    }
     LaunchedEffect(access.loading, access.authorized, currentRoute) {
         if (!access.loading && !access.authorized && currentRoute.requiresOrganizer) {
             backStack.clear()

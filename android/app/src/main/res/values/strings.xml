@@ -41,7 +41,7 @@
     <string name="delete_action">Удалить</string>
     <string name="cancel_action">Отмена</string>
     <string name="delete_game_title">Удалить игру?</string>
-    <string name="delete_game_description">Подготовленные прохождения и результаты команд сохранятся.</string>
+    <string name="delete_game_description">Игра и её активное прохождение исчезнут с экрана команды. Подготовленные прохождения, ответы и результаты сохранятся в истории.</string>
     <string name="game_settings_title">Настройки игры</string>
     <string name="game_title_label">Название игры</string>
     <string name="story_label">История</string>

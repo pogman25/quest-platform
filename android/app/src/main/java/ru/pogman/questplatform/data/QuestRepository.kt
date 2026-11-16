@@ -39,8 +39,9 @@ class QuestRepository(
                 ?: flowOf(null)
         }
 
-    suspend fun initialize() {
+    suspend fun initialize(repairDeletedGameActivation: Boolean = false) {
         database.withTransaction {
+            if (repairDeletedGameActivation) dao.clearActiveRunWithoutGame()
             if (dao.settings() != null) return@withTransaction
             dao.saveSettings(SettingsRow())
             writeGame(
@@ -106,6 +107,7 @@ class QuestRepository(
         access.requireOrganizer()
         database.withTransaction {
             access.requireOrganizer()
+            dao.clearActiveRunForGame(id)
             dao.deleteGame(id)
         }
     }

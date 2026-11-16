@@ -29,5 +29,15 @@ class AppContainer(
     val repository = QuestRepository(database, access, photos, clock)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    val initialization = scope.launch { repository.initialize() }
+    val initialization = scope.launch {
+        val repairs = context.getSharedPreferences("data_repairs", Context.MODE_PRIVATE)
+        val key = "deleted_game_activation_v1:${database.openHelper.databaseName}"
+        if (repairs.getBoolean(key, false)) {
+            repository.initialize()
+        } else {
+            // Repair old activations once, so an explicitly reopened archive can persist later.
+            repository.initialize(repairDeletedGameActivation = true)
+            repairs.edit().putBoolean(key, true).commit()
+        }
+    }
 }

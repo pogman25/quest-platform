@@ -59,6 +59,8 @@ class RepositoryTest {
                 .copy(title = "Изменённая игра")
         )
         repository.deleteGame(game.id)
+        assertNull(repository.activeRun.first())
+        assertNull(database.quests().settings()!!.activeRunId)
         repository.selectRun(id)
         assertEquals(game.title, repository.activeRun.first()!!.gameTitle)
         assertNull(repository.activeRun.first()!!.quests.single().reward)
@@ -87,6 +89,23 @@ class RepositoryTest {
         val history = repository.history.first().single { it.id == id }
         assertEquals(5, history.incorrectAttempts)
         assertEquals(6, history.log.size)
+    }
+
+    @Test
+    fun legacyDeletedGameActivationIsRepairedWithoutLosingItsArchive() = runBlocking {
+        val id = repository.prepareRun("detective-photo-demo", "Старая команда", "4")
+        repository.startRun()
+        repository.openQuest(QuestType.PHOTO)
+        repository.submitPhoto("книга")
+        val snapshot = database.quests().run(id)
+        // Simulate deletion by the previous app version, which kept the activation.
+        database.quests().deleteGame("detective-photo-demo")
+        repository.initialize(repairDeletedGameActivation = true)
+        assertNull(repository.activeRun.first())
+        assertEquals(snapshot, database.quests().run(id))
+        repository.selectRun(id)
+        repository.initialize()
+        assertEquals(id, repository.activeRun.first()!!.id)
     }
 
     @Test
