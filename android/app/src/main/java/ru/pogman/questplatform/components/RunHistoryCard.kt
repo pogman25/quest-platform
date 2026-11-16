@@ -46,6 +46,7 @@ fun RunHistoryCard(
         }
         run.quests.forEach { quest ->
             Text("${quest.position}. ${quest.title}")
+            quest.noiseCount?.let { Text(stringResource(R.string.silent_noise_count, it)) }
             if (quest.openedAt != null)
                 ElapsedTime(
                     quest.openedAt,

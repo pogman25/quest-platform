@@ -264,4 +264,25 @@
     <string name="noise_error_unavailable">Не удалось получить сигнал встроенного микрофона. Завершите звонок или другое приложение с микрофоном, отключите гарнитуру и попробуйте снова.</string>
     <string name="noise_error_silenced">Микрофон не передаёт звук. Проверьте переключатель «Доступ к микрофону» в шторке Android и закройте приложения, которые могут его занимать. Затем повторите калибровку.</string>
     <string name="noise_error_calibration">Во время калибровки фон был слишком громким. Дождитесь тишины, уберите телефон от источника звука и откалибруйте заново.</string>
+    <string name="silent_target_title">Предмет и код находки</string>
+    <string name="silent_code_label">Код на предмете</string>
+    <string name="silent_code_hint">Четыре цифры, включая начальные нули. Закрепите метку на предмете. Это код находки, отдельный от кода замка.</string>
+    <string name="silent_alarm_settings">Настройка сигнализации</string>
+    <string name="silent_calibration_ready">Фон комнаты откалиброван</string>
+    <string name="silent_calibration_required">Ведущему нужно откалибровать фон для «Тихого обыска» перед сохранением игры.</string>
+    <string name="silent_microphone_required">Для проверки кода запустите обыск с работающим микрофоном.</string>
+    <string name="silent_sensitivity_value">Чувствительность: %1$d%%</string>
+    <string name="silent_calibrate_action">Калибровка и чувствительность</string>
+    <string name="silent_settings_hint">Настройки одинаковы для всех команд. После начала обыска его код, описание и калибровка сохраняются в прохождении. Новые настройки применятся к новым прохождениям.</string>
+    <string name="silent_apply_calibration">Применить к этой улике</string>
+    <string name="silent_alarm_title">Сигнализация</string>
+    <string name="silent_noise_count">Превышений шума: %1$d</string>
+    <string name="silent_player_hint">Телефон остаётся на месте, микрофон открыт. Каждое новое превышение увеличивает счётчик. Красная подсветка длится 3 секунды, поиск продолжается. Победит команда с меньшим числом превышений.</string>
+    <string name="silent_start_action">Начать / продолжить обыск</string>
+    <string name="silent_wrong_code">Код не подошёл. Проверьте метку на найденном предмете.</string>
+    <string name="silent_clear_code">Очистить код</string>
+    <string name="silent_erase_digit">Удалить последнюю цифру</string>
+    <string name="silent_standings_title">Тихий обыск · %1$s</string>
+    <string name="silent_standings_hint">Завершённые обыски с одинаковым заданием и настройками: меньше превышений — выше место; при равенстве сравниваем время обыска.</string>
+    <string name="silent_standing_row">%1$d. %2$s · превышений: %3$d · %4$s</string>
 </resources>

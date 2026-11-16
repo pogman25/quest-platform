@@ -126,6 +126,22 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
         clearError()
     }
 
+    fun applySilentCalibration(gameId: String, settings: NoiseSettings): Boolean {
+        if (
+            !access.authorized.value ||
+                mutableEditor.value?.id != gameId ||
+                !settings.valid ||
+                mutableEditor.value?.quests?.none { it.type == QuestType.SILENT } != false
+        )
+            return false
+        updateGame { game ->
+            game.updateQuest(QuestType.SILENT) { config ->
+                if (config is SilentQuestConfig) config.copy(noise = settings) else config
+            }
+        }
+        return true
+    }
+
     fun openNfcWriter(tagId: String) = perform {
         val game = saveDraft() ?: return@perform
         val config = game.quests.find { it.type == QuestType.NFC }?.config as? NfcQuestConfig
@@ -295,6 +311,7 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
                                         )
                                     is QrQuestConfig -> config.copy(token = config.token.trim())
                                     is WordQuestConfig -> config.copy(word = config.word.trim())
+                                    is SilentQuestConfig -> config.copy(code = config.code.trim())
                                     is ChoiceQuestConfig ->
                                         config.copy(
                                             cells =

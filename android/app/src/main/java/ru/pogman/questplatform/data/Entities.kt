@@ -1,5 +1,6 @@
 package ru.pogman.questplatform.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -81,6 +82,9 @@ data class RunQuestRow(
     val digit: String,
     val openedAt: Long? = null,
     val solvedAt: Long? = null,
+    @ColumnInfo(defaultValue = "0") val noiseCount: Int = 0,
+    @ColumnInfo(defaultValue = "0") val noiseActive: Boolean = false,
+    val lastNoiseAt: Long? = null,
 )
 
 @Entity(

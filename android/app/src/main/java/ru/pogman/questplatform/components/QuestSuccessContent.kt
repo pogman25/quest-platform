@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ru.pogman.questplatform.R
 import ru.pogman.questplatform.domain.PlayerQuest
+import ru.pogman.questplatform.domain.QuestType
 
 @Composable
 fun QuestSuccessContent(quest: PlayerQuest, finished: Boolean, onContinue: () -> Unit) {
@@ -23,6 +24,8 @@ fun QuestSuccessContent(quest: PlayerQuest, finished: Boolean, onContinue: () ->
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
+        if (quest.type == QuestType.SILENT)
+            Text(stringResource(R.string.silent_noise_count, quest.noiseCount))
         Icon(
             painterResource(R.drawable.ic_check_circle),
             null,

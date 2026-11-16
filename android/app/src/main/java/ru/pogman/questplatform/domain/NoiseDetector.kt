@@ -3,11 +3,13 @@ package ru.pogman.questplatform.domain
 import kotlin.math.abs
 import kotlin.math.log10
 import kotlin.math.sqrt
+import kotlinx.serialization.Serializable
 
 data class NoiseLevel(val rmsDbfs: Double, val peakDbfs: Double)
 
 data class NoiseThresholds(val rmsDbfs: Double, val peakDbfs: Double)
 
+@Serializable
 data class NoiseBaseline(val rmsDbfs: Double, val peakDbfs: Double) {
     fun thresholds(sensitivity: Float) =
         NoiseThresholds(
@@ -55,13 +57,13 @@ fun calibrateNoise(levels: List<NoiseLevel>): NoiseBaseline {
     )
 }
 
-class NoiseDetector(private val baseline: NoiseBaseline) {
-    var active: Boolean = false
+class NoiseDetector(private val baseline: NoiseBaseline, initiallyActive: Boolean = false) {
+    var active: Boolean = initiallyActive
         private set
 
     private var loudSince: Long? = null
     private var quietSince: Long? = null
-    private var lastEvent: Long? = null
+    private var lastEvent: Long? = if (initiallyActive) 0L else null
 
     fun accept(level: NoiseLevel, timeMs: Long, sensitivity: Float): Boolean {
         val threshold = baseline.thresholds(sensitivity)

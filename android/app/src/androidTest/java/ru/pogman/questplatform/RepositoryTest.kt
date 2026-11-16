@@ -252,6 +252,8 @@ class RepositoryTest {
                             )
                         is WordQuestConfig -> QuestAnswer.Text(config.word.uppercase())
                         is PhotoQuestConfig -> QuestAnswer.Text(config.answers.first())
+                        is SilentQuestConfig ->
+                            error("Silent search is covered by its microphone session tests")
                     }
                 assertEquals(AnswerVerdict.CORRECT, repository.submitAnswer(quest.type, answer))
                 assertNull(repository.activeRun.first()!!.finalCode)

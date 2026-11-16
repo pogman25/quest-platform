@@ -11,6 +11,9 @@ class QuestViewModelFactory(private val container: AppContainer) : ViewModelProv
             OrganizerViewModel::class.java -> OrganizerViewModel(container) as T
             PlayerViewModel::class.java -> PlayerViewModel(container.repository, container.nfc) as T
             NoiseMeterViewModel::class.java -> NoiseMeterViewModel(container.microphone) as T
+            SilentSearchViewModel::class.java ->
+                SilentSearchViewModel(container.repository, container.microphone, container.clock)
+                    as T
             else -> error("Unknown ViewModel: ${modelClass.name}")
         }
 }

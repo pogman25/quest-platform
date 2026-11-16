@@ -27,6 +27,8 @@ enum class QuestFailure {
     PHOTO_INVALID,
     PHOTO_SOURCE_UNAVAILABLE,
     STORAGE_ERROR,
+    SILENT_CALIBRATION_REQUIRED,
+    SILENT_MIC_REQUIRED,
 }
 
 class QuestException(val failure: QuestFailure) : IllegalStateException(failure.name)

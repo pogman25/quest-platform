@@ -13,6 +13,7 @@ import ru.pogman.questplatform.components.ElapsedTime
 import ru.pogman.questplatform.components.ScreenContent
 import ru.pogman.questplatform.components.SectionCard
 import ru.pogman.questplatform.domain.PlayerRun
+import ru.pogman.questplatform.domain.QuestType
 
 @Composable
 fun ResultScreen(run: PlayerRun, onReturn: () -> Unit) {
@@ -31,6 +32,18 @@ fun ResultScreen(run: PlayerRun, onReturn: () -> Unit) {
             Text(stringResource(R.string.open_lock_hint))
         }
         ElapsedTime(run.startedAt, run.finishedAt, stringResource(R.string.total_time_label))
+        run.quests
+            .find { it.type == QuestType.SILENT }
+            ?.let { quest ->
+                SectionCard(quest.title) {
+                    Text(stringResource(R.string.silent_noise_count, quest.noiseCount))
+                    ElapsedTime(
+                        quest.openedAt,
+                        quest.solvedAt,
+                        stringResource(R.string.quest_time_label),
+                    )
+                }
+            }
         SectionCard(stringResource(R.string.slowest_quest_label)) {
             run.slowestQuest?.let { quest ->
                 Text(quest.title)

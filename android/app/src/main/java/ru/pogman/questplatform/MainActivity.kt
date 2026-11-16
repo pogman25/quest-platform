@@ -10,6 +10,7 @@ import ru.pogman.questplatform.viewmodel.NoiseMeterViewModel
 import ru.pogman.questplatform.viewmodel.OrganizerViewModel
 import ru.pogman.questplatform.viewmodel.PlayerViewModel
 import ru.pogman.questplatform.viewmodel.QuestViewModelFactory
+import ru.pogman.questplatform.viewmodel.SilentSearchViewModel
 
 class MainActivity : ComponentActivity() {
     private val organizer: OrganizerViewModel by viewModels {
@@ -19,6 +20,9 @@ class MainActivity : ComponentActivity() {
         QuestViewModelFactory((application as QuestApplication).appContainer())
     }
     private val noiseMeter: NoiseMeterViewModel by viewModels {
+        QuestViewModelFactory((application as QuestApplication).appContainer())
+    }
+    private val silentSearch: SilentSearchViewModel by viewModels {
         QuestViewModelFactory((application as QuestApplication).appContainer())
     }
 
@@ -37,7 +41,12 @@ class MainActivity : ComponentActivity() {
                 ),
         )
         setContent {
-            QuestApp(organizer = organizer, player = player, noiseMeter = noiseMeter)
+            QuestApp(
+                organizer = organizer,
+                player = player,
+                noiseMeter = noiseMeter,
+                silentSearch = silentSearch,
+            )
         }
     }
 }

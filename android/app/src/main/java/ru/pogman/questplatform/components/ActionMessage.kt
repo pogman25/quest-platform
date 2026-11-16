@@ -47,4 +47,6 @@ private fun errorMessage(error: QuestFailure): Int =
         QuestFailure.PHOTO_INVALID -> R.string.error_photo
         QuestFailure.PHOTO_SOURCE_UNAVAILABLE -> R.string.error_photo_source
         QuestFailure.STORAGE_ERROR -> R.string.error_storage
+        QuestFailure.SILENT_CALIBRATION_REQUIRED -> R.string.silent_calibration_required
+        QuestFailure.SILENT_MIC_REQUIRED -> R.string.silent_microphone_required
     }

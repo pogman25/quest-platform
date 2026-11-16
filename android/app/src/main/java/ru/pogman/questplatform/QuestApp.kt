@@ -27,6 +27,7 @@ import ru.pogman.questplatform.domain.*
 import ru.pogman.questplatform.navigation.NoiseMeterContent
 import ru.pogman.questplatform.navigation.OrganizerContent
 import ru.pogman.questplatform.navigation.QuestRoute
+import ru.pogman.questplatform.navigation.SilentSearchContent
 import ru.pogman.questplatform.navigation.editsGame
 import ru.pogman.questplatform.navigation.requiresOrganizer
 import ru.pogman.questplatform.screens.BriefingScreen
@@ -47,12 +48,14 @@ import ru.pogman.questplatform.viewmodel.OrganizerEvent
 import ru.pogman.questplatform.viewmodel.OrganizerViewModel
 import ru.pogman.questplatform.viewmodel.PlayerEvent
 import ru.pogman.questplatform.viewmodel.PlayerViewModel
+import ru.pogman.questplatform.viewmodel.SilentSearchViewModel
 
 @Composable
 fun QuestApp(
     organizer: OrganizerViewModel,
     player: PlayerViewModel,
     noiseMeter: NoiseMeterViewModel,
+    silentSearch: SilentSearchViewModel,
 ) {
     val context = LocalContext.current
     val access by organizer.state.collectAsStateWithLifecycle()
@@ -190,7 +193,8 @@ fun QuestApp(
                     if (organizer.editor.value?.id == event.gameId) {
                         while (
                             backStack.lastOrNull() is QuestRoute.QuestSettings ||
-                                backStack.lastOrNull() is QuestRoute.NfcWriter
+                                backStack.lastOrNull() is QuestRoute.NfcWriter ||
+                                backStack.lastOrNull() is QuestRoute.SilentCalibration
                         ) {
                             backStack.removeLastOrNull()
                         }
@@ -255,6 +259,7 @@ fun QuestApp(
             QuestRoute.RunHistory -> R.string.history_title
             QuestRoute.PasswordChange -> R.string.password_change_title
             QuestRoute.NoiseMeter -> R.string.noise_meter_title
+            is QuestRoute.SilentCalibration -> R.string.silent_alarm_settings
             QuestRoute.PhotoQuest -> R.string.photo_title
             QuestRoute.Result -> R.string.results_action
             is QuestRoute.PrepareRun -> R.string.game_team_section
@@ -385,6 +390,10 @@ fun QuestApp(
                                             val handleExport = {
                                                 organizer.prepareMaterial(quest.type)
                                             }
+                                            val handleCalibration = {
+                                                backStack.add(QuestRoute.SilentCalibration(game.id))
+                                                Unit
+                                            }
                                             QuestSettingsScreen(
                                                 game.id,
                                                 quest,
@@ -397,6 +406,7 @@ fun QuestApp(
                                                 organizer::openNfcWriter,
                                                 handleExport,
                                                 organizer::saveQuest,
+                                                handleCalibration,
                                             )
                                         } else
                                             UnavailableContent(
@@ -446,6 +456,38 @@ fun QuestApp(
                                         )
                                     }
                                 }
+                                entry<QuestRoute.SilentCalibration> { route ->
+                                    OrganizerContent(access.authorized) {
+                                        val config =
+                                            editor
+                                                ?.takeIf { it.id == route.gameId }
+                                                ?.quests
+                                                ?.find { it.type == QuestType.SILENT }
+                                                ?.config as? SilentQuestConfig
+                                        val handleApply: (NoiseSettings) -> Unit = { settings ->
+                                            if (
+                                                organizer.applySilentCalibration(
+                                                    route.gameId,
+                                                    settings,
+                                                )
+                                            )
+                                                backStack.removeLastOrNull()
+                                        }
+                                        if (config != null)
+                                            NoiseMeterContent(
+                                                noiseMeter,
+                                                currentRoute == route,
+                                                route.gameId,
+                                                config.noise,
+                                                handleApply,
+                                            )
+                                        else
+                                            UnavailableContent(
+                                                R.string.error_quest_not_found,
+                                                handleBack,
+                                            )
+                                    }
+                                }
                                 entry<QuestRoute.Briefing> { route ->
                                     val selected = run?.takeIf { it.id == route.runId }
                                     if (selected?.finishedAt != null)
@@ -479,7 +521,14 @@ fun QuestApp(
                                             player::reportScannerFailure,
                                             showNotebook,
                                             handleResult,
-                                        )
+                                        ) {
+                                            SilentSearchContent(
+                                                silentSearch,
+                                                selected.id,
+                                                quest,
+                                                currentRoute == route,
+                                            )
+                                        }
                                     } else
                                         UnavailableContent(
                                             R.string.error_quest_not_found,

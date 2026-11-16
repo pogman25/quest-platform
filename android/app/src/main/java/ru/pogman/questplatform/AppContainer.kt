@@ -19,7 +19,9 @@ import ru.pogman.questplatform.data.QuestRepository
 class AppContainer(
     context: Context,
     val database: QuestDatabase =
-        Room.databaseBuilder(context, QuestDatabase::class.java, "quest-platform.db").build(),
+        Room.databaseBuilder(context, QuestDatabase::class.java, "quest-platform.db")
+            .addMigrations(QuestDatabase.MIGRATION_1_2)
+            .build(),
     val clock: Clock = Clock.systemUTC(),
 ) {
     val access = OrganizerAccess(database)

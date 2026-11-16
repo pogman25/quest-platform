@@ -26,6 +26,7 @@ fun NoiseMeterScreen(
     onStop: () -> Unit,
     onSensitivity: (Float) -> Unit,
     onReset: () -> Unit,
+    onApply: (() -> Unit)? = null,
 ) {
     var instructions by rememberSaveable { mutableStateOf(false) }
     val handleInstructions = { instructions = !instructions }
@@ -93,6 +94,17 @@ fun NoiseMeterScreen(
                 Text(stringResource(R.string.noise_sensitivity_high))
             }
         }
+        if (onApply != null)
+            Button(
+                onApply,
+                enabled =
+                    state.baseline != null &&
+                        state.phase != NoisePhase.CALIBRATING &&
+                        state.phase != NoisePhase.WARMING_UP,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.silent_apply_calibration))
+            }
         TextButton(handleInstructions) { Text(stringResource(R.string.noise_instructions_action)) }
         if (instructions) {
             Text(stringResource(R.string.noise_calibration_hint))

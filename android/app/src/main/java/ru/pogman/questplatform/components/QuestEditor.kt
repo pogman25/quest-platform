@@ -16,8 +16,16 @@ fun QuestEditor(
     onWriteNfc: (String) -> Unit,
     loadPhoto: suspend (String) -> Bitmap,
     onExport: () -> Unit,
+    onCalibrateSilent: () -> Unit = {},
 ) {
     when (val config = quest.config) {
+        is SilentQuestConfig ->
+            SilentQuestEditor(
+                config,
+                enabled,
+                typedChange<SilentQuestConfig>(onChange),
+                onCalibrateSilent,
+            )
         is PhotoQuestConfig ->
             PhotoQuestEditor(
                 gameId,

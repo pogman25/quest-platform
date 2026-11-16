@@ -27,6 +27,7 @@ fun QuestScreen(
     onScannerFailure: () -> Unit,
     onReturn: () -> Unit,
     onResult: () -> Unit,
+    silentSearch: @Composable () -> Unit = {},
 ) {
     var text by rememberSaveable(runId, quest.type.id) { mutableStateOf("") }
     var selected by rememberSaveable(runId, quest.type.id) { mutableStateOf(arrayListOf<String>()) }
@@ -118,6 +119,7 @@ fun QuestScreen(
             }
             QuestType.NFC -> NfcReader(active, onNfc)
             QuestType.QR -> QrScanner(active, action.busy, handleToken, onScannerFailure)
+            QuestType.SILENT -> silentSearch()
         }
         when (feedback) {
             AnswerVerdict.INCORRECT ->

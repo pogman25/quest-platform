@@ -26,6 +26,10 @@ fun evaluateAnswer(type: QuestType, config: QuestConfig, answer: QuestAnswer): A
                 config is WordQuestConfig &&
                     answer is QuestAnswer.Text &&
                     matchesPhotoAnswer(answer.value, listOf(config.word))
+            QuestType.SILENT ->
+                config is SilentQuestConfig &&
+                    answer is QuestAnswer.Text &&
+                    answer.value == config.code
             QuestType.QR ->
                 config is QrQuestConfig &&
                     answer is QuestAnswer.Token &&

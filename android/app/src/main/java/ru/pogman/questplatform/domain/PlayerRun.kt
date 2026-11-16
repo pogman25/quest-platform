@@ -9,6 +9,10 @@ data class PlayerQuest(
     val openedAt: Long?,
     val solvedAt: Long?,
     val reward: String?,
+    val noiseSettings: NoiseSettings? = null,
+    val noiseCount: Int = 0,
+    val noiseActive: Boolean = false,
+    val lastNoiseAt: Long? = null,
 ) {
     val title: String
         get() = type.title
@@ -45,6 +49,8 @@ data class QuestRunSummary(
     val position: Int,
     val openedAt: Long?,
     val solvedAt: Long?,
+    val noiseCount: Int? = null,
+    val noiseRulesKey: String? = null,
 )
 
 data class RunSummary(
@@ -58,6 +64,7 @@ data class RunSummary(
     val incorrectAttempts: Int,
     val quests: List<QuestRunSummary>,
     val log: List<AnswerAttempt>,
+    val gameId: String = "",
 )
 
 data class AnswerAttempt(

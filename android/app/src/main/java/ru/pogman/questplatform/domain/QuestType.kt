@@ -6,7 +6,8 @@ enum class QuestType(val id: String, val title: String, val selectionSize: Int =
     OBJECTS("objects", "Три предмета в комнате", 3),
     PHOTO("photo", "Фото до метели"),
     TREE("tree", "След на ёлке", 4),
-    STENCIL("stencil", "Два слоя снега");
+    STENCIL("stencil", "Два слоя снега"),
+    SILENT("silent", "Тихий обыск");
 
     companion object {
         fun fromId(id: String): QuestType = entries.first { it.id == id }

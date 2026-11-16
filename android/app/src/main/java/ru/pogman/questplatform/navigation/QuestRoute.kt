@@ -26,6 +26,8 @@ sealed interface QuestRoute : NavKey {
 
     @Serializable data object NoiseMeter : QuestRoute
 
+    @Serializable data class SilentCalibration(val gameId: String) : QuestRoute
+
     @Serializable data class Briefing(val runId: String) : QuestRoute
 
     @Serializable data object PhotoQuest : QuestRoute
@@ -46,6 +48,7 @@ val NavKey.requiresOrganizer: Boolean
             this == QuestRoute.RunHistory ||
             this == QuestRoute.PasswordChange ||
             this == QuestRoute.NoiseMeter ||
+            this is QuestRoute.SilentCalibration ||
             this is QuestRoute.NfcWriter
 
 // All these routes edit the same game draft, kept by OrganizerViewModel.
@@ -53,4 +56,5 @@ val NavKey.editsGame: Boolean
     get() =
         this == QuestRoute.GameEditor ||
             this is QuestRoute.QuestSettings ||
-            this is QuestRoute.NfcWriter
+            this is QuestRoute.NfcWriter ||
+            this is QuestRoute.SilentCalibration

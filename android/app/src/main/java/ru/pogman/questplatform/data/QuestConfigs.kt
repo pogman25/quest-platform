@@ -19,6 +19,7 @@ class QuestConfigs {
             QuestType.OBJECTS,
             QuestType.TREE -> json.decodeFromString<ChoiceQuestConfig>(value)
             QuestType.STENCIL -> json.decodeFromString<WordQuestConfig>(value)
+            QuestType.SILENT -> json.decodeFromString<SilentQuestConfig>(value)
         }
 
     fun encode(config: QuestConfig): String =
@@ -28,6 +29,7 @@ class QuestConfigs {
             is QrQuestConfig -> json.encodeToString(config)
             is ChoiceQuestConfig -> json.encodeToString(config)
             is WordQuestConfig -> json.encodeToString(config)
+            is SilentQuestConfig -> json.encodeToString(config)
         }
 }
 
@@ -79,6 +81,10 @@ fun defaultQuest(type: QuestType): GameQuest =
                     "Совместите найденные карточки и накладки. Какое слово получилось?",
                     "метель",
                     strokeSeed = kotlin.random.Random.nextLong(0, 0x100000000L),
+                )
+            QuestType.SILENT ->
+                SilentQuestConfig(
+                    "Найдите предмет по описанию ведущего и введите код с его метки. Сигнализация фиксирует громкие звуки. Победит команда с меньшим числом срабатываний."
                 )
         },
     )

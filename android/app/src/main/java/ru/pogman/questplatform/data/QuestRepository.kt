@@ -1,14 +1,22 @@
 package ru.pogman.questplatform.data
 
 import androidx.room.withTransaction
+import java.security.MessageDigest
 import java.time.Clock
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import ru.pogman.questplatform.domain.*
+
+data class SilentProgress(val count: Int, val active: Boolean, val lastNoiseAt: Long?)
+
+data class SilentSearchSetup(val settings: NoiseSettings, val progress: SilentProgress)
+
+private data class SilentSession(val runId: String, val id: String)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class QuestRepository(
@@ -19,6 +27,7 @@ class QuestRepository(
 ) {
     private val dao = database.quests()
     private val configs = QuestConfigs()
+    private val silentSession = AtomicReference<SilentSession?>(null)
 
     val games: Flow<List<GameSummary>> =
         access.authorized.flatMapLatest { authorized ->
@@ -61,7 +70,7 @@ class QuestRepository(
             "Новое дело",
             "В комнате спрятаны улики. Исследуйте её вместе и соберите код настоящего замка.",
             "Проходите улики в любом порядке. Каждая даст цифру и её место в коде. Ошибки не ограничены. Начните расследование, когда команда будет готова.",
-            QuestType.entries.map(::defaultQuest),
+            QuestType.entries.filter { it != QuestType.SILENT }.map(::defaultQuest),
         )
 
     suspend fun loadGame(id: String): Game {
@@ -96,7 +105,12 @@ class QuestRepository(
                 )
                 game.quests.forEach { quest ->
                     val progress = active.quests.single { it.questId == quest.type.id }
-                    if (progress.solvedAt == null)
+                    // Once a silent search starts, keep the same calibration and target for its
+                    // score.
+                    if (
+                        progress.solvedAt == null &&
+                            (quest.type != QuestType.SILENT || progress.openedAt == null)
+                    )
                         dao.updateRunQuest(progress.copy(config = configs.encode(quest.config)))
                 }
             }
@@ -194,7 +208,14 @@ class QuestRepository(
             } else {
                 stored.quests.forEach {
                     dao.insertRunQuest(
-                        it.copy(runId = restartedId, openedAt = null, solvedAt = null)
+                        it.copy(
+                            runId = restartedId,
+                            openedAt = null,
+                            solvedAt = null,
+                            noiseCount = 0,
+                            noiseActive = false,
+                            lastNoiseAt = null,
+                        )
                     )
                 }
             }
@@ -218,7 +239,8 @@ class QuestRepository(
             requireStarted(stored)
             val quest =
                 stored.quests.find { it.questId == type.id } ?: fail(QuestFailure.QUEST_NOT_FOUND)
-            if (quest.openedAt == null) dao.updateRunQuest(quest.copy(openedAt = clock.millis()))
+            if (quest.openedAt == null && type != QuestType.SILENT)
+                dao.updateRunQuest(quest.copy(openedAt = clock.millis()))
         }
     }
 
@@ -226,12 +248,74 @@ class QuestRepository(
         type: QuestType,
         answer: QuestAnswer,
         runId: String? = null,
+    ): AnswerVerdict = resolveAnswer(type, answer, runId)
+
+    suspend fun beginSilentSearch(runId: String, sessionId: String): SilentSearchSetup =
+        database.withTransaction {
+            val stored = currentRun(runId)
+            requireStarted(stored)
+            val quest =
+                stored.quests.find { it.questId == QuestType.SILENT.id }
+                    ?: fail(QuestFailure.QUEST_NOT_FOUND)
+            if (quest.solvedAt != null) fail(QuestFailure.SILENT_MIC_REQUIRED)
+            val config = configs.decode(QuestType.SILENT, quest.config) as SilentQuestConfig
+            val settings =
+                config.noise?.takeIf { it.valid } ?: fail(QuestFailure.SILENT_CALIBRATION_REQUIRED)
+            if (quest.openedAt == null) dao.updateRunQuest(quest.copy(openedAt = clock.millis()))
+            silentSession.set(SilentSession(runId, sessionId))
+            SilentSearchSetup(settings, quest.silentProgress())
+        }
+
+    fun endSilentSearch(sessionId: String) {
+        val current = silentSession.get()
+        if (current?.id == sessionId) silentSession.compareAndSet(current, null)
+    }
+
+    suspend fun recordSilentNoise(
+        runId: String,
+        sessionId: String,
+        active: Boolean,
+    ): SilentProgress = database.withTransaction {
+        val stored = currentRun(runId)
+        requireStarted(stored)
+        val quest =
+            stored.quests.find { it.questId == QuestType.SILENT.id }
+                ?: fail(QuestFailure.QUEST_NOT_FOUND)
+        requireSilentSession(runId, sessionId)
+        if (quest.solvedAt != null || quest.noiseActive == active)
+            return@withTransaction quest.silentProgress()
+        val updated =
+            quest.copy(
+                noiseCount = quest.noiseCount + if (active) 1 else 0,
+                noiseActive = active,
+                lastNoiseAt = if (active) clock.millis() else quest.lastNoiseAt,
+            )
+        dao.updateRunQuest(updated)
+        updated.silentProgress()
+    }
+
+    suspend fun submitSilentCode(runId: String, sessionId: String, code: String): AnswerVerdict =
+        resolveAnswer(QuestType.SILENT, QuestAnswer.Text(code), runId, sessionId)
+
+    private fun requireSilentSession(runId: String, sessionId: String?) {
+        if (sessionId == null || silentSession.get() != SilentSession(runId, sessionId))
+            fail(QuestFailure.SILENT_MIC_REQUIRED)
+    }
+
+    private fun RunQuestRow.silentProgress() = SilentProgress(noiseCount, noiseActive, lastNoiseAt)
+
+    private suspend fun resolveAnswer(
+        type: QuestType,
+        answer: QuestAnswer,
+        runId: String?,
+        sessionId: String? = null,
     ): AnswerVerdict = database.withTransaction {
         val stored = currentRun(runId)
         requireStarted(stored)
         val quest =
             stored.quests.find { it.questId == type.id } ?: fail(QuestFailure.QUEST_NOT_FOUND)
         if (quest.solvedAt != null) return@withTransaction AnswerVerdict.CORRECT
+        if (type == QuestType.SILENT) requireSilentSession(stored.run.id, sessionId)
         val config = configs.decode(type, quest.config)
         val verdict = evaluateAnswer(type, config, answer)
         if (verdict == AnswerVerdict.UNKNOWN_TAG) return@withTransaction verdict
@@ -248,10 +332,15 @@ class QuestRepository(
             )
         )
         dao.updateRunQuest(
-            quest.copy(openedAt = quest.openedAt ?: now, solvedAt = now.takeIf { correct })
+            quest.copy(
+                openedAt = quest.openedAt ?: now,
+                solvedAt = now.takeIf { correct },
+                noiseActive = if (correct) false else quest.noiseActive,
+            )
         )
         if (correct && stored.quests.filter { it.questId != type.id }.all { it.solvedAt != null })
             dao.updateRun(stored.run.copy(finishedAt = now))
+        if (correct && type == QuestType.SILENT && sessionId != null) endSilentSearch(sessionId)
         verdict
     }
 
@@ -280,7 +369,7 @@ class QuestRepository(
                 game.title.length > 80 ||
                 game.story.length > 10_000 ||
                 game.rules.length > 10_000 ||
-                game.quests.size !in 1..6 ||
+                game.quests.size !in 1..QuestType.entries.size ||
                 game.quests.map { it.type }.distinct().size != game.quests.size
         )
             fail(QuestFailure.GAME_INVALID)
@@ -337,6 +426,13 @@ class QuestRepository(
                             config.correctOverlay in 1..8 &&
                             config.strokeSeed in 0..0xffffffffL &&
                             config.strokeVersion == 3
+                    QuestType.SILENT -> {
+                        if (config is SilentQuestConfig && config.noise?.valid != true)
+                            fail(QuestFailure.SILENT_CALIBRATION_REQUIRED)
+                        config is SilentQuestConfig &&
+                            config.code.length == 4 &&
+                            config.code.all { it in '0'..'9' }
+                    }
                 }
             if (!valid) fail(QuestFailure.GAME_INVALID)
         }
@@ -403,6 +499,10 @@ class QuestRepository(
                         quest.openedAt,
                         quest.solvedAt,
                         quest.digit.takeIf { quest.solvedAt != null },
+                        (config as? SilentQuestConfig)?.noise,
+                        quest.noiseCount,
+                        quest.noiseActive,
+                        quest.lastNoiseAt,
                     )
                 },
             run.gameId,
@@ -426,6 +526,12 @@ class QuestRepository(
                         it.position,
                         it.openedAt,
                         it.solvedAt,
+                        if (it.questId == QuestType.SILENT.id) it.noiseCount else null,
+                        if (it.questId == QuestType.SILENT.id)
+                            MessageDigest.getInstance("SHA-256")
+                                .digest(it.config.toByteArray())
+                                .joinToString("") { byte -> "%02x".format(byte) }
+                        else null,
                     )
                 },
             attempts
@@ -438,6 +544,7 @@ class QuestRepository(
                         it.submittedAt,
                     )
                 },
+            run.gameId,
         )
 
     private fun fail(failure: QuestFailure): Nothing = throw QuestException(failure)

@@ -70,6 +70,26 @@ data class WordQuestConfig(
 
 data class GameQuest(val type: QuestType, val config: QuestConfig)
 
+@Serializable
+data class SilentQuestConfig(
+    override val instruction: String,
+    val code: String = "0427",
+    val noise: NoiseSettings? = null,
+) : QuestConfig
+
+@Serializable
+data class NoiseSettings(val baseline: NoiseBaseline, val sensitivity: Float = 0.5f) {
+    val valid: Boolean
+        get() =
+            baseline.rmsDbfs.isFinite() &&
+                baseline.peakDbfs.isFinite() &&
+                baseline.rmsDbfs >= -96.0 &&
+                baseline.peakDbfs >= baseline.rmsDbfs &&
+                baseline.hasHeadroom &&
+                sensitivity.isFinite() &&
+                sensitivity in 0f..1f
+}
+
 fun Game.updateQuest(type: QuestType, transform: (QuestConfig) -> QuestConfig): Game =
     copy(
         quests = quests.map { if (it.type == type) it.copy(config = transform(it.config)) else it }

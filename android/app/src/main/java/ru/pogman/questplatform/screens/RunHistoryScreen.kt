@@ -13,7 +13,9 @@ import ru.pogman.questplatform.R
 import ru.pogman.questplatform.components.ActionMessage
 import ru.pogman.questplatform.components.RunHistoryCard
 import ru.pogman.questplatform.components.ScreenContent
+import ru.pogman.questplatform.components.SilentStandingsCard
 import ru.pogman.questplatform.domain.RunSummary
+import ru.pogman.questplatform.domain.silentCompetitions
 import ru.pogman.questplatform.viewmodel.ActionState
 
 @Composable
@@ -32,6 +34,7 @@ fun RunHistoryScreen(
     }
     ScreenContent {
         ActionMessage(action)
+        silentCompetitions(runs).forEach { SilentStandingsCard(it) }
         if (runs.isEmpty()) {
             Text(stringResource(R.string.history_empty))
         }

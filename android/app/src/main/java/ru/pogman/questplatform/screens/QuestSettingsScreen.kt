@@ -24,6 +24,7 @@ fun QuestSettingsScreen(
     onWriteNfc: (String) -> Unit,
     onExport: () -> Unit,
     onSave: () -> Unit,
+    onCalibrateSilent: () -> Unit = {},
 ) {
     ScreenContent {
         Text(quest.type.title, style = MaterialTheme.typography.headlineLarge)
@@ -40,6 +41,7 @@ fun QuestSettingsScreen(
             onWriteNfc,
             loadPhoto,
             onExport,
+            onCalibrateSilent,
         )
         ActionMessage(action)
         Text(stringResource(R.string.quest_draft_hint))

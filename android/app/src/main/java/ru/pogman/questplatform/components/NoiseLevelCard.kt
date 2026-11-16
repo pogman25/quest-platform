@@ -1,16 +1,10 @@
 package ru.pogman.questplatform.components
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.progressSemantics
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import ru.pogman.questplatform.R
 import ru.pogman.questplatform.data.MicrophoneInput
 import ru.pogman.questplatform.viewmodel.NoiseMeterState
@@ -27,10 +21,6 @@ fun NoiseLevelCard(state: NoiseMeterState, onReset: () -> Unit) {
         if (level == null) 0f
         else if (baseline == null) ((level.rmsDbfs + 80.0) / 80.0).toFloat().coerceIn(0f, 1f)
         else (baseline.relativeLevel(level, state.sensitivity) * 0.8f).coerceIn(0f, 1f)
-    val track = MaterialTheme.colorScheme.outlineVariant
-    val fill =
-        if (state.alert) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    val marker = MaterialTheme.colorScheme.onSurface
     val status =
         when (state.phase) {
             NoisePhase.IDLE -> R.string.noise_status_idle
@@ -51,23 +41,7 @@ fun NoiseLevelCard(state: NoiseMeterState, onReset: () -> Unit) {
             ),
     ) {
         Text(stringResource(status), style = MaterialTheme.typography.headlineSmall)
-        Canvas(Modifier.fillMaxWidth().height(24.dp).progressSemantics(progress)) {
-            val radius = CornerRadius(6.dp.toPx())
-            drawRoundRect(track, cornerRadius = radius)
-            if (progress > 0f)
-                drawRoundRect(
-                    fill,
-                    size = Size(size.width * progress, size.height),
-                    cornerRadius = radius,
-                )
-            if (baseline != null)
-                drawLine(
-                    marker,
-                    Offset(size.width * 0.8f, 0f),
-                    Offset(size.width * 0.8f, size.height),
-                    strokeWidth = 2.dp.toPx(),
-                )
-        }
+        NoiseGauge(progress, state.alert, threshold = baseline != null)
         if (state.phase == NoisePhase.CALIBRATING) {
             LinearProgressIndicator(
                 progress = { state.calibrationProgress },

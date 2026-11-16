@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -52,6 +54,19 @@ class NoiseMeterViewModel(private val microphone: MicrophoneMeter) : ViewModel()
     private var capture: Job? = null
     private var detector: NoiseDetector? = null
     private var ignoreUntil = 0L
+    private var configurationKey: String? = null
+
+    fun configure(key: String, settings: NoiseSettings?, force: Boolean) {
+        if (!force && configurationKey == key) return
+        stop()
+        configurationKey = key
+        mutableState.value =
+            NoiseMeterState(
+                phase = if (settings == null) NoisePhase.IDLE else NoisePhase.PAUSED,
+                baseline = settings?.baseline,
+                sensitivity = settings?.sensitivity ?: 0.5f,
+            )
+    }
 
     fun calibrate() = start(calibrate = true)
 
@@ -124,6 +139,7 @@ class NoiseMeterViewModel(private val microphone: MicrophoneMeter) : ViewModel()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
+                currentCoroutineContext().ensureActive()
                 val failure =
                     when (error) {
                         is CalibrationTooLoud -> NoiseMeterError.CALIBRATION_TOO_LOUD

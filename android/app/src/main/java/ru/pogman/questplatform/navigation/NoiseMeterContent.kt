@@ -1,89 +1,44 @@
 package ru.pogman.questplatform.navigation
 
-import android.Manifest
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ru.pogman.questplatform.domain.NoiseSettings
 import ru.pogman.questplatform.screens.NoiseMeterScreen
 import ru.pogman.questplatform.viewmodel.NoiseMeterViewModel
 
 @Composable
-fun NoiseMeterContent(viewModel: NoiseMeterViewModel, active: Boolean) {
-    val context = LocalContext.current
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val view = LocalView.current
+fun NoiseMeterContent(
+    viewModel: NoiseMeterViewModel,
+    active: Boolean,
+    configurationKey: String = "prototype",
+    initialSettings: NoiseSettings? = null,
+    onApply: ((NoiseSettings) -> Unit)? = null,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var granted by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
-                PackageManager.PERMISSION_GRANTED
-        )
+    val access = rememberMicrophoneAccess(active, state.running, viewModel::stop)
+    LaunchedEffect(configurationKey) {
+        viewModel.configure(configurationKey, initialSettings, force = onApply != null)
     }
-    var resumed by remember {
-        mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
-    }
-    val permission =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-            granted = it
-        }
-    val handlePermission = { permission.launch(Manifest.permission.RECORD_AUDIO) }
-    val handleSettings = {
-        context.startActivity(
-            Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                Uri.parse("package:${context.packageName}"),
-            )
-        )
-    }
-    val handleCalibrate = { if (active && resumed && granted) viewModel.calibrate() }
-    val handleResume = { if (active && resumed && granted) viewModel.resume() }
-
-    // Like an effect with cleanup: navigation and Android's foreground lifecycle both own access.
-    DisposableEffect(lifecycle, active, viewModel) {
-        if (!active) viewModel.stop()
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                resumed = true
-                granted =
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
-                        PackageManager.PERMISSION_GRANTED
-            } else if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
-                resumed = false
-                viewModel.stop()
-            }
-        }
-        lifecycle.addObserver(observer)
-        onDispose {
-            lifecycle.removeObserver(observer)
+    val handleCalibrate = { if (access.ready) viewModel.calibrate() }
+    val handleResume = { if (access.ready) viewModel.resume() }
+    val handleApply = {
+        val baseline = state.baseline
+        if (baseline != null) {
             viewModel.stop()
+            onApply?.invoke(NoiseSettings(baseline, state.sensitivity))
         }
-    }
-    val keepAwake = active && resumed && state.running
-    DisposableEffect(view, keepAwake) {
-        val previous = view.keepScreenOn
-        if (keepAwake) view.keepScreenOn = true
-        onDispose { if (keepAwake) view.keepScreenOn = previous }
+        Unit
     }
     NoiseMeterScreen(
         state,
-        granted,
-        handlePermission,
-        handleSettings,
+        access.granted,
+        access.request,
+        access.settings,
         handleCalibrate,
         handleResume,
         viewModel::stop,
         viewModel::setSensitivity,
         viewModel::resetCounter,
+        handleApply.takeIf { onApply != null },
     )
 }
