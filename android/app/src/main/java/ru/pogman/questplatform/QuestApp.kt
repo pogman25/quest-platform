@@ -24,6 +24,7 @@ import ru.pogman.questplatform.components.LoadingContent
 import ru.pogman.questplatform.components.QuestTopBar
 import ru.pogman.questplatform.components.UnavailableContent
 import ru.pogman.questplatform.domain.*
+import ru.pogman.questplatform.navigation.NoiseMeterContent
 import ru.pogman.questplatform.navigation.OrganizerContent
 import ru.pogman.questplatform.navigation.QuestRoute
 import ru.pogman.questplatform.navigation.editsGame
@@ -41,13 +42,18 @@ import ru.pogman.questplatform.screens.QuestSettingsScreen
 import ru.pogman.questplatform.screens.ResultScreen
 import ru.pogman.questplatform.screens.RunHistoryScreen
 import ru.pogman.questplatform.theme.QuestTheme
+import ru.pogman.questplatform.viewmodel.NoiseMeterViewModel
 import ru.pogman.questplatform.viewmodel.OrganizerEvent
 import ru.pogman.questplatform.viewmodel.OrganizerViewModel
 import ru.pogman.questplatform.viewmodel.PlayerEvent
 import ru.pogman.questplatform.viewmodel.PlayerViewModel
 
 @Composable
-fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
+fun QuestApp(
+    organizer: OrganizerViewModel,
+    player: PlayerViewModel,
+    noiseMeter: NoiseMeterViewModel,
+) {
     val context = LocalContext.current
     val access by organizer.state.collectAsStateWithLifecycle()
     val organizerAction by organizer.action.collectAsStateWithLifecycle()
@@ -140,6 +146,10 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
     val handlePassword = {
         organizer.clearError()
         backStack.add(QuestRoute.PasswordChange)
+        Unit
+    }
+    val handleNoiseMeter = {
+        backStack.add(QuestRoute.NoiseMeter)
         Unit
     }
     val photoActions =
@@ -244,6 +254,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
             QuestRoute.GameEditor -> R.string.game_settings_title
             QuestRoute.RunHistory -> R.string.history_title
             QuestRoute.PasswordChange -> R.string.password_change_title
+            QuestRoute.NoiseMeter -> R.string.noise_meter_title
             QuestRoute.PhotoQuest -> R.string.photo_title
             QuestRoute.Result -> R.string.results_action
             is QuestRoute.PrepareRun -> R.string.game_team_section
@@ -336,6 +347,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                             organizer::deleteGame,
                                             handleHistory,
                                             handlePassword,
+                                            handleNoiseMeter,
                                         )
                                     }
                                 }
@@ -423,6 +435,14 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                         PasswordChangeScreen(
                                             organizerAction,
                                             organizer::changePassword,
+                                        )
+                                    }
+                                }
+                                entry<QuestRoute.NoiseMeter> {
+                                    OrganizerContent(access.authorized) {
+                                        NoiseMeterContent(
+                                            noiseMeter,
+                                            currentRoute == QuestRoute.NoiseMeter,
                                         )
                                     }
                                 }

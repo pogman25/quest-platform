@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,6 +37,7 @@ fun OrganizerGamesScreen(
     onDelete: (String) -> Unit,
     onHistory: () -> Unit,
     onPassword: () -> Unit,
+    onNoiseMeter: () -> Unit,
 ) {
     var deleting by remember { mutableStateOf<String?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -62,6 +64,9 @@ fun OrganizerGamesScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(stringResource(R.string.create_game_action))
+                }
+                OutlinedButton(onClick = onNoiseMeter, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.noise_meter_action))
                 }
                 ActionMessage(action)
                 OutlinedTextField(

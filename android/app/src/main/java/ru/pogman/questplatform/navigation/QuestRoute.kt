@@ -24,6 +24,8 @@ sealed interface QuestRoute : NavKey {
 
     @Serializable data object PasswordChange : QuestRoute
 
+    @Serializable data object NoiseMeter : QuestRoute
+
     @Serializable data class Briefing(val runId: String) : QuestRoute
 
     @Serializable data object PhotoQuest : QuestRoute
@@ -43,6 +45,7 @@ val NavKey.requiresOrganizer: Boolean
             this is QuestRoute.PrepareRun ||
             this == QuestRoute.RunHistory ||
             this == QuestRoute.PasswordChange ||
+            this == QuestRoute.NoiseMeter ||
             this is QuestRoute.NfcWriter
 
 // All these routes edit the same game draft, kept by OrganizerViewModel.

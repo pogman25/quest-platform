@@ -6,6 +6,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import ru.pogman.questplatform.viewmodel.NoiseMeterViewModel
 import ru.pogman.questplatform.viewmodel.OrganizerViewModel
 import ru.pogman.questplatform.viewmodel.PlayerViewModel
 import ru.pogman.questplatform.viewmodel.QuestViewModelFactory
@@ -15,6 +16,9 @@ class MainActivity : ComponentActivity() {
         QuestViewModelFactory((application as QuestApplication).appContainer())
     }
     private val player: PlayerViewModel by viewModels {
+        QuestViewModelFactory((application as QuestApplication).appContainer())
+    }
+    private val noiseMeter: NoiseMeterViewModel by viewModels {
         QuestViewModelFactory((application as QuestApplication).appContainer())
     }
 
@@ -33,7 +37,7 @@ class MainActivity : ComponentActivity() {
                 ),
         )
         setContent {
-            QuestApp(organizer = organizer, player = player)
+            QuestApp(organizer = organizer, player = player, noiseMeter = noiseMeter)
         }
     }
 }
