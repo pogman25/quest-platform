@@ -57,6 +57,9 @@ class PhotoFlowTest {
         waitFor("Ответ пока не подошёл. Посмотрите внимательнее и попробуйте ещё раз.")
         fill("Какой предмет исчез?", " ЛАМПА ")
         click("Проверить ответ")
+        waitFor("Улика раскрыта!")
+        composeRule.onNodeWithText("Дело раскрыто!").assertDoesNotExist()
+        click("Посмотреть результат")
         waitFor("Дело раскрыто!")
         composeRule.onNodeWithTag("finalCode").assertTextEquals("0")
         click("К блокноту команды")
@@ -101,6 +104,7 @@ class PhotoFlowTest {
             )
         fill("Какой предмет исчез?", "лампа")
         click("Проверить ответ")
+        click("Посмотреть результат")
         waitFor("Дело раскрыто!")
         composeRule.onNodeWithTag("finalCode").assertTextEquals("0")
     }

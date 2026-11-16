@@ -12,8 +12,6 @@ sealed interface PlayerEvent {
     data object Started : PlayerEvent
 
     data class OpenedQuest(val type: QuestType) : PlayerEvent
-
-    data class Solved(val finished: Boolean) : PlayerEvent
 }
 
 class PlayerViewModel(private val repository: QuestRepository, private val nfc: NfcTagStore) :
@@ -65,11 +63,6 @@ class PlayerViewModel(private val repository: QuestRepository, private val nfc: 
 
     private suspend fun resolve(type: QuestType, answer: QuestAnswer, runId: String) {
         mutableFeedback.value = null
-        val result = repository.submitAnswer(type, answer, runId)
-        mutableFeedback.value = result
-        if (result == AnswerVerdict.CORRECT) {
-            val current = repository.activeRun.first { it?.id == runId }
-            channel.send(PlayerEvent.Solved(current?.finishedAt != null))
-        }
+        mutableFeedback.value = repository.submitAnswer(type, answer, runId)
     }
 }

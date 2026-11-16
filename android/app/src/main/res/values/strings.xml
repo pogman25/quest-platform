@@ -121,7 +121,12 @@
     <string name="quest_progress">Улики: %1$d из %2$d</string>
     <string name="quest_solved">Улика раскрыта</string>
     <string name="open_quest_action">Открыть улику</string>
-    <string name="quest_list_action">К списку улик</string>
+    <string name="quest_list_action">К уликам</string>
+    <string name="quest_success_title">Улика раскрыта!</string>
+    <string name="earned_digit_label">Ваша цифра</string>
+    <string name="quest_success_hint">Цифра добавлена в код. Продолжайте расследование.</string>
+    <string name="quest_success_final_hint">Все улики раскрыты! Посмотрите собранный код и откройте замок.</string>
+    <string name="view_result_action">Посмотреть результат</string>
     <string name="selection_count">Выбрано %1$d из %2$d</string>
     <string name="clear_selection_action">Очистить выбор</string>
     <string name="edit_cells_action">Изменить подписи и символы</string>

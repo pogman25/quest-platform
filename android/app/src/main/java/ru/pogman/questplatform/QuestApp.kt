@@ -114,6 +114,8 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
         Unit
     }
     val handleResult = {
+        backStack.clear()
+        backStack.add(QuestRoute.Player)
         backStack.add(QuestRoute.Result)
         Unit
     }
@@ -194,11 +196,6 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                     backStack.add(QuestRoute.Player)
                 }
                 is PlayerEvent.OpenedQuest -> backStack.add(QuestRoute.QuestDetails(event.type.id))
-                is PlayerEvent.Solved -> {
-                    backStack.clear()
-                    backStack.add(QuestRoute.Player)
-                    if (event.finished) backStack.add(QuestRoute.Result)
-                }
             }
         }
     }
