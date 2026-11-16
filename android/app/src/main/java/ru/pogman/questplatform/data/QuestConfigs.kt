@@ -6,7 +6,10 @@ import ru.pogman.questplatform.domain.*
 
 // The type remains in questId. Explicit serializers also read the original photo-only JSON.
 class QuestConfigs {
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
 
     fun decode(type: QuestType, value: String): QuestConfig =
         when (type) {
@@ -75,6 +78,7 @@ fun defaultQuest(type: QuestType): GameQuest =
                 WordQuestConfig(
                     "Совместите найденные карточки и накладки. Какое слово получилось?",
                     "метель",
+                    strokeSeed = kotlin.random.Random.nextLong(0, 0x100000000L),
                 )
         },
     )

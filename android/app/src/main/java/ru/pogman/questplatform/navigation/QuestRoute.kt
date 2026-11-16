@@ -15,6 +15,8 @@ sealed interface QuestRoute : NavKey {
 
     @Serializable data object GameEditor : QuestRoute
 
+    @Serializable data class QuestSettings(val gameId: String, val questId: String) : QuestRoute
+
     @Serializable data class PrepareRun(val gameId: String) : QuestRoute
 
     @Serializable data object RunHistory : QuestRoute
@@ -36,7 +38,15 @@ val NavKey.requiresOrganizer: Boolean
     get() =
         this == QuestRoute.OrganizerGames ||
             this == QuestRoute.GameEditor ||
+            this is QuestRoute.QuestSettings ||
             this is QuestRoute.PrepareRun ||
             this == QuestRoute.RunHistory ||
             this == QuestRoute.PasswordChange ||
+            this is QuestRoute.NfcWriter
+
+// All these routes edit the same game draft, kept by OrganizerViewModel.
+val NavKey.editsGame: Boolean
+    get() =
+        this == QuestRoute.GameEditor ||
+            this is QuestRoute.QuestSettings ||
             this is QuestRoute.NfcWriter

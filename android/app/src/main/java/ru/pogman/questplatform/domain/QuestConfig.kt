@@ -20,9 +20,35 @@ data class QrQuestConfig(
     override val instruction: String,
     val photoRef: String,
     val token: String,
+    val sizeMm: Int = 150,
+    val fit: PictureFit = PictureFit.COVER,
 ) : QuestConfig
 
-@Serializable data class ChoiceCell(val id: String, val label: String, val symbol: String)
+@Serializable
+enum class PictureFit {
+    COVER,
+    CONTAIN,
+}
+
+@Serializable
+data class ChoiceCell(
+    val id: String,
+    val label: String,
+    val symbol: String,
+    val photoRef: String? = null,
+)
+
+data class ChoiceItem(
+    val id: String,
+    val label: String,
+    val symbol: String,
+    val imageUri: String? = null,
+)
+
+fun ChoiceCell.forDisplay(photoUri: (String) -> String) =
+    ChoiceItem(id, label, symbol, photoRef?.let(photoUri))
+
+data class PhotoTarget(val type: QuestType, val cellId: String? = null)
 
 @Serializable
 data class ChoiceQuestConfig(
@@ -32,7 +58,15 @@ data class ChoiceQuestConfig(
 ) : QuestConfig
 
 @Serializable
-data class WordQuestConfig(override val instruction: String, val word: String) : QuestConfig
+// Defaults also read old word-only saves. Keep them stable; new saves encode print settings.
+data class WordQuestConfig(
+    override val instruction: String,
+    val word: String,
+    val widthMm: Int = 168,
+    val correctOverlay: Int = 3,
+    val strokeSeed: Long = 20261116L,
+    val strokeVersion: Int = 3,
+) : QuestConfig
 
 data class GameQuest(val type: QuestType, val config: QuestConfig)
 

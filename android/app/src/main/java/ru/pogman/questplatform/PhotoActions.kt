@@ -13,11 +13,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import java.io.IOException
 import ru.pogman.questplatform.data.CameraPhotoStore
+import ru.pogman.questplatform.domain.PhotoTarget
 import ru.pogman.questplatform.domain.QuestFailure
 import ru.pogman.questplatform.domain.QuestType
 import ru.pogman.questplatform.viewmodel.OrganizerViewModel
 
-data class PhotoActions(val gallery: (QuestType) -> Unit, val camera: (QuestType) -> Unit)
+data class PhotoActions(val gallery: (PhotoTarget) -> Unit, val camera: (PhotoTarget) -> Unit)
 
 @Composable
 fun rememberPhotoActions(
@@ -32,13 +33,19 @@ fun rememberPhotoActions(
     var cameraUri by rememberSaveable { mutableStateOf<String?>(null) }
     var galleryType by rememberSaveable { mutableStateOf(QuestType.PHOTO.id) }
     var cameraType by rememberSaveable { mutableStateOf(QuestType.PHOTO.id) }
+    var galleryCellId by rememberSaveable { mutableStateOf<String?>(null) }
+    var cameraCellId by rememberSaveable { mutableStateOf<String?>(null) }
 
     val gallery =
         rememberLauncherForActivityResult(LocalPhotoContract()) { uri ->
             val owner = galleryGameId
             galleryGameId = null
             if (uri != null && owner != null)
-                organizer.importPhoto(uri, owner, QuestType.fromId(galleryType))
+                organizer.importPhoto(
+                    uri,
+                    owner,
+                    PhotoTarget(QuestType.fromId(galleryType), galleryCellId),
+                )
         }
     val camera =
         rememberLauncherForActivityResult(CameraPhotoContract()) { success ->
@@ -51,7 +58,7 @@ fun rememberPhotoActions(
                     organizer.importPhoto(
                         uri,
                         owner,
-                        QuestType.fromId(cameraType),
+                        PhotoTarget(QuestType.fromId(cameraType), cameraCellId),
                         fromCamera = true,
                     )
                 else captures.discard(uri)
@@ -61,7 +68,7 @@ fun rememberPhotoActions(
         cameraUri?.let { captures.discard(it.toUri()) }
         cameraUri = null
         cameraGameId = null
-        organizer.reportPhotoFailure(failure)
+        organizer.reportExternalFailure(failure)
     }
     val launchCapture = {
         if (enabled && gameId != null && cameraGameId == gameId) {
@@ -85,27 +92,29 @@ fun rememberPhotoActions(
             if (granted) launchCapture()
             else handleCameraFailure(QuestFailure.CAMERA_PERMISSION_REQUIRED)
         }
-    val handleGallery: (QuestType) -> Unit = { type ->
+    val handleGallery: (PhotoTarget) -> Unit = { target ->
         if (enabled && gameId != null && galleryGameId == null && cameraGameId == null) {
             galleryGameId = gameId
-            galleryType = type.id
+            galleryType = target.type.id
+            galleryCellId = target.cellId
             try {
                 gallery.launch(
                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                 )
             } catch (_: ActivityNotFoundException) {
                 galleryGameId = null
-                organizer.reportPhotoFailure(QuestFailure.PHOTO_SOURCE_UNAVAILABLE)
+                organizer.reportExternalFailure(QuestFailure.PHOTO_SOURCE_UNAVAILABLE)
             } catch (_: SecurityException) {
                 galleryGameId = null
-                organizer.reportPhotoFailure(QuestFailure.PHOTO_SOURCE_UNAVAILABLE)
+                organizer.reportExternalFailure(QuestFailure.PHOTO_SOURCE_UNAVAILABLE)
             }
         }
     }
-    val handleCamera: (QuestType) -> Unit = { type ->
+    val handleCamera: (PhotoTarget) -> Unit = { target ->
         if (enabled && gameId != null && galleryGameId == null && cameraGameId == null) {
             cameraGameId = gameId
-            cameraType = type.id
+            cameraType = target.type.id
+            cameraCellId = target.cellId
             if (
                 ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
                     PackageManager.PERMISSION_GRANTED

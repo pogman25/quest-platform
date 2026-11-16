@@ -1,5 +1,6 @@
 package ru.pogman.questplatform
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.entryProvider
@@ -21,6 +23,7 @@ import ru.pogman.questplatform.components.UnavailableContent
 import ru.pogman.questplatform.domain.*
 import ru.pogman.questplatform.navigation.OrganizerContent
 import ru.pogman.questplatform.navigation.QuestRoute
+import ru.pogman.questplatform.navigation.editsGame
 import ru.pogman.questplatform.navigation.requiresOrganizer
 import ru.pogman.questplatform.screens.BriefingScreen
 import ru.pogman.questplatform.screens.GameEditorScreen
@@ -31,6 +34,7 @@ import ru.pogman.questplatform.screens.PasswordChangeScreen
 import ru.pogman.questplatform.screens.PlayerHomeScreen
 import ru.pogman.questplatform.screens.PrepareRunScreen
 import ru.pogman.questplatform.screens.QuestScreen
+import ru.pogman.questplatform.screens.QuestSettingsScreen
 import ru.pogman.questplatform.screens.ResultScreen
 import ru.pogman.questplatform.screens.RunHistoryScreen
 import ru.pogman.questplatform.theme.QuestTheme
@@ -41,6 +45,7 @@ import ru.pogman.questplatform.viewmodel.PlayerViewModel
 
 @Composable
 fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
+    val context = LocalContext.current
     val access by organizer.state.collectAsStateWithLifecycle()
     val organizerAction by organizer.action.collectAsStateWithLifecycle()
     val playerAction by player.action.collectAsStateWithLifecycle()
@@ -69,7 +74,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
         }
     }
     val handlePlayer = {
-        if (currentRoute == QuestRoute.GameEditor || currentRoute is QuestRoute.NfcWriter) {
+        if (currentRoute.editsGame) {
             organizer.saveAndSwitchToPlayer()
         } else {
             organizer.leaveOrganizer()
@@ -113,6 +118,11 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
         Unit
     }
     val handleCreate = { organizer.editGame(null) }
+    val handleQuestSettings: (QuestType) -> Unit = { type ->
+        editor?.let { backStack.add(QuestRoute.QuestSettings(it.id, type.id)) }
+        Unit
+    }
+    val saveMaterial = rememberMaterialActions(organizer)
     val handlePrepare: (String) -> Unit = {
         organizer.clearError()
         backStack.add(QuestRoute.PrepareRun(it))
@@ -129,7 +139,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
     val photoActions =
         rememberPhotoActions(
             editor?.id,
-            access.authorized && currentRoute == QuestRoute.GameEditor && !organizerAction.busy,
+            access.authorized && currentRoute is QuestRoute.QuestSettings && !organizerAction.busy,
             organizer,
         )
 
@@ -144,12 +154,16 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                 OrganizerEvent.EditGame -> backStack.add(QuestRoute.GameEditor)
                 OrganizerEvent.GameSaved,
                 OrganizerEvent.PasswordChanged -> backStack.removeLastOrNull()
+                OrganizerEvent.QuestSaved -> {
+                    if (backStack.lastOrNull() is QuestRoute.QuestSettings)
+                        backStack.removeLastOrNull()
+                }
+                is OrganizerEvent.MaterialReady -> saveMaterial(event.material)
+                OrganizerEvent.MaterialSaved ->
+                    Toast.makeText(context, R.string.material_saved, Toast.LENGTH_SHORT).show()
                 OrganizerEvent.PlayerMode -> returnToPlayer()
                 is OrganizerEvent.PrepareGame -> {
-                    while (
-                        backStack.lastOrNull() == QuestRoute.GameEditor ||
-                            backStack.lastOrNull() is QuestRoute.NfcWriter
-                    ) {
+                    while (backStack.lastOrNull()?.editsGame == true) {
                         backStack.removeLastOrNull()
                     }
                     backStack.add(QuestRoute.PrepareRun(event.gameId))
@@ -211,7 +225,10 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
             else -> R.string.app_name
         }
     val title =
-        if (currentRoute is QuestRoute.QuestDetails)
+        if (currentRoute is QuestRoute.QuestSettings)
+            editor?.quests?.find { it.type.id == currentRoute.questId }?.type?.title
+                ?: stringResource(R.string.game_settings_title)
+        else if (currentRoute is QuestRoute.QuestDetails)
             run?.quests?.find { it.type.id == currentRoute.questId }?.title
                 ?: stringResource(titleResource)
         else stringResource(titleResource)
@@ -299,16 +316,50 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                         editor?.let { game ->
                                             GameEditorScreen(
                                                 game,
-                                                organizer::photoUri,
                                                 organizerAction,
                                                 organizer::updateGame,
                                                 organizer::toggleQuest,
-                                                photoActions.gallery,
-                                                photoActions.camera,
-                                                organizer::openNfcWriter,
+                                                handleQuestSettings,
+                                                organizer::moveQuest,
                                                 organizer::saveGame,
                                             )
                                         } ?: LoadingContent()
+                                    }
+                                }
+                                entry<QuestRoute.QuestSettings> { route ->
+                                    OrganizerContent(access.authorized) {
+                                        val game = editor?.takeIf { it.id == route.gameId }
+                                        val quest =
+                                            game?.quests?.find { it.type.id == route.questId }
+                                        if (game != null && quest != null) {
+                                            val handleChange:
+                                                ((QuestConfig) -> QuestConfig) -> Unit =
+                                                { transform ->
+                                                    organizer.updateGame {
+                                                        it.updateQuest(quest.type, transform)
+                                                    }
+                                                }
+                                            val handleExport = {
+                                                organizer.prepareMaterial(quest.type)
+                                            }
+                                            QuestSettingsScreen(
+                                                game.id,
+                                                quest,
+                                                organizerAction,
+                                                organizer::photoUri,
+                                                organizer::previewPhoto,
+                                                handleChange,
+                                                photoActions.gallery,
+                                                photoActions.camera,
+                                                organizer::openNfcWriter,
+                                                handleExport,
+                                                organizer::saveQuest,
+                                            )
+                                        } else
+                                            UnavailableContent(
+                                                R.string.error_quest_not_found,
+                                                handleBack,
+                                            )
                                     }
                                 }
                                 entry<QuestRoute.PrepareRun> { route ->

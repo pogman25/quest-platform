@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import ru.pogman.questplatform.AppContainer
+import ru.pogman.questplatform.data.PreparedMaterial
 import ru.pogman.questplatform.data.defaultQuest
 import ru.pogman.questplatform.domain.*
 
@@ -28,6 +29,12 @@ sealed interface OrganizerEvent {
     data object EditGame : OrganizerEvent
 
     data object GameSaved : OrganizerEvent
+
+    data object QuestSaved : OrganizerEvent
+
+    data object MaterialSaved : OrganizerEvent
+
+    data class MaterialReady(val material: PreparedMaterial) : OrganizerEvent
 
     data object PasswordChanged : OrganizerEvent
 
@@ -95,13 +102,24 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
         clearError()
     }
 
-    fun reportPhotoFailure(failure: QuestFailure) = reportFailure(failure)
+    fun reportExternalFailure(failure: QuestFailure) = reportFailure(failure)
 
     fun toggleQuest(type: QuestType) = updateGame { game ->
         if (game.quests.any { it.type == type }) {
             if (game.quests.size > 1) game.copy(quests = game.quests.filter { it.type != type })
             else game
         } else game.copy(quests = game.quests + defaultQuest(type))
+    }
+
+    fun moveQuest(type: QuestType, direction: Int) = updateGame { game ->
+        val quests = game.quests.toMutableList()
+        val index = quests.indexOfFirst { it.type == type }
+        val target = index + direction
+        if (index >= 0 && target in quests.indices) {
+            val item = quests.removeAt(index)
+            quests.add(target, item)
+        }
+        game.copy(quests = quests)
     }
 
     fun clearNfcResult() {
@@ -142,7 +160,7 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
     fun importPhoto(
         uri: Uri,
         gameId: String,
-        type: QuestType = QuestType.PHOTO,
+        target: PhotoTarget = PhotoTarget(QuestType.PHOTO),
         fromCamera: Boolean = false,
     ) {
         if (action.value.busy) {
@@ -160,14 +178,31 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
                 val game = mutableEditor.value
                 if (
                     game?.id == gameId &&
-                        game.quests.any { it.type == type } &&
-                        type in listOf(QuestType.PHOTO, QuestType.QR)
+                        game.quests.any { quest ->
+                            quest.type == target.type &&
+                                when (val config = quest.config) {
+                                    is PhotoQuestConfig,
+                                    is QrQuestConfig -> target.cellId == null
+                                    is ChoiceQuestConfig ->
+                                        config.cells.any { it.id == target.cellId }
+                                    else -> false
+                                }
+                        }
                 ) {
                     mutableEditor.value =
-                        game.updateQuest(type) { config ->
+                        game.updateQuest(target.type) { config ->
                             when (config) {
                                 is PhotoQuestConfig -> config.copy(photoRef = reference)
                                 is QrQuestConfig -> config.copy(photoRef = reference)
+                                is ChoiceQuestConfig ->
+                                    config.copy(
+                                        cells =
+                                            config.cells.map {
+                                                if (it.id == target.cellId)
+                                                    it.copy(photoRef = reference)
+                                                else it
+                                            }
+                                    )
                                 else -> config
                             }
                         }
@@ -181,6 +216,35 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
     }
 
     fun photoUri(reference: String): String = container.photos.displayUri(reference)
+
+    suspend fun previewPhoto(reference: String) = container.photos.bitmap(reference, 1000)
+
+    fun saveQuest() = perform {
+        saveDraft(clear = false)
+        channel.send(OrganizerEvent.QuestSaved)
+    }
+
+    fun prepareMaterial(type: QuestType) = perform {
+        val game = saveDraft(clear = false) ?: return@perform
+        val material = container.materials.prepare(game, type)
+        if (!access.authorized.value || mutableEditor.value?.id != game.id) {
+            container.materials.discard(material.id)
+            return@perform
+        }
+        channel.send(OrganizerEvent.MaterialReady(material))
+    }
+
+    fun saveMaterial(id: String, uri: Uri) = perform {
+        try {
+            access.requireOrganizer()
+            container.materials.save(id, uri)
+            channel.send(OrganizerEvent.MaterialSaved)
+        } finally {
+            container.materials.discard(id)
+        }
+    }
+
+    fun discardMaterial(id: String) = container.materials.discard(id)
 
     fun saveGame() = perform {
         saveDraft()

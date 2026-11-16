@@ -1,6 +1,7 @@
 package ru.pogman.questplatform.domain
 
 enum class QuestFailure {
+    MATERIAL_EXPORT_FAILED,
     PASSWORD_TOO_SHORT,
     PASSWORD_MISMATCH,
     WRONG_PASSWORD,

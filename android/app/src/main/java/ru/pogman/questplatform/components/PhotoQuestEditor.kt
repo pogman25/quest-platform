@@ -17,12 +17,12 @@ fun PhotoQuestEditor(
     photoUri: String,
     enabled: Boolean,
     onChange: ((PhotoQuestConfig) -> PhotoQuestConfig) -> Unit,
-    onGallery: (QuestType) -> Unit,
-    onCamera: (QuestType) -> Unit,
+    onGallery: (PhotoTarget) -> Unit,
+    onCamera: (PhotoTarget) -> Unit,
 ) {
     var answers by rememberSaveable(gameId) { mutableStateOf(config.answers.joinToString(", ")) }
-    val handleGallery = { onGallery(QuestType.PHOTO) }
-    val handleCamera = { onCamera(QuestType.PHOTO) }
+    val handleGallery = { onGallery(PhotoTarget(QuestType.PHOTO)) }
+    val handleCamera = { onCamera(PhotoTarget(QuestType.PHOTO)) }
     val handleInstruction: (String) -> Unit = { value ->
         onChange { it.copy(instruction = value.take(500)) }
     }

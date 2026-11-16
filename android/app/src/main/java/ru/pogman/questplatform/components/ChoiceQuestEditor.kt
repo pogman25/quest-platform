@@ -3,9 +3,9 @@ package ru.pogman.questplatform.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import ru.pogman.questplatform.R
 import ru.pogman.questplatform.domain.*
 
@@ -14,20 +14,46 @@ fun ChoiceQuestEditor(
     type: QuestType,
     config: ChoiceQuestConfig,
     enabled: Boolean,
+    photoUri: (String) -> String,
     onChange: ((ChoiceQuestConfig) -> ChoiceQuestConfig) -> Unit,
+    onGallery: (PhotoTarget) -> Unit,
+    onCamera: (PhotoTarget) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val handleExpand = { expanded = !expanded }
+    var cellId by rememberSaveable(type.id) { mutableStateOf(config.cells.first().id) }
+    val index = config.cells.indexOfFirst { it.id == cellId }.coerceAtLeast(0)
+    val cell = config.cells[index]
+    val items = config.cells.map { it.forDisplay(photoUri) }
     val handleInstruction: (String) -> Unit = { value ->
         onChange { it.copy(instruction = value.take(500)) }
     }
-    val handleSelect: (String) -> Unit = { id ->
+    val handleCell: (String) -> Unit = { cellId = it }
+    val handleCellChange: ((ChoiceCell) -> ChoiceCell) -> Unit = { transform ->
         onChange { current ->
-            val selected =
-                if (id in current.answers) current.answers - id
-                else if (current.answers.size < type.selectionSize) current.answers + id
-                else current.answers
-            current.copy(answers = selected)
+            current.copy(cells = current.cells.map { if (it.id == cell.id) transform(it) else it })
+        }
+    }
+    val handleMove: (Int) -> Unit = { direction ->
+        onChange { current ->
+            val cells = current.cells.toMutableList()
+            val from = cells.indexOfFirst { it.id == cell.id }
+            val to = from + direction
+            if (from >= 0 && to in cells.indices) {
+                val moved = cells.removeAt(from)
+                cells.add(to, moved)
+            }
+            current.copy(cells = cells)
+        }
+    }
+    val handleGallery = { onGallery(PhotoTarget(type, cell.id)) }
+    val handleCamera = { onCamera(PhotoTarget(type, cell.id)) }
+    val handleAnswer: (String) -> Unit = { id ->
+        onChange { current ->
+            current.copy(
+                answers =
+                    if (id in current.answers) current.answers - id
+                    else if (current.answers.size < type.selectionSize) current.answers + id
+                    else current.answers
+            )
         }
     }
     val handleClear = { onChange { it.copy(answers = emptyList()) } }
@@ -39,57 +65,32 @@ fun ChoiceQuestEditor(
         minLines = 2,
         enabled = enabled,
     )
+    Text(stringResource(R.string.edit_keyboard_title), style = MaterialTheme.typography.titleLarge)
+    Text(stringResource(R.string.edit_keyboard_hint))
+    ChoiceGrid(items, listOf(cell.id), false, enabled, handleCell)
+    ChoiceCellEditor(
+        cell,
+        index,
+        config.cells.size,
+        enabled,
+        handleCellChange,
+        handleMove,
+        handleGallery,
+        handleCamera,
+    )
+    Text(
+        stringResource(R.string.correct_answers_title),
+        style = MaterialTheme.typography.titleLarge,
+    )
     Text(
         stringResource(
             if (type == QuestType.TREE) R.string.tree_answers_hint
             else R.string.objects_answers_hint
         )
     )
-    ChoiceGrid(config.cells, config.answers, type == QuestType.TREE, enabled, handleSelect)
+    ChoiceGrid(items, config.answers, type == QuestType.TREE, enabled, handleAnswer)
     Text(stringResource(R.string.selection_count, config.answers.size, type.selectionSize))
-    TextButton(onClick = handleClear, enabled = enabled) {
+    TextButton(handleClear, enabled = enabled) {
         Text(stringResource(R.string.clear_selection_action))
     }
-    TextButton(onClick = handleExpand) { Text(stringResource(R.string.edit_cells_action)) }
-    if (expanded)
-        config.cells.forEach { cell ->
-            val handleLabel: (String) -> Unit = { value ->
-                onChange { current ->
-                    current.copy(
-                        cells =
-                            current.cells.map {
-                                if (it.id == cell.id) it.copy(label = value.take(40)) else it
-                            }
-                    )
-                }
-            }
-            val handleSymbol: (String) -> Unit = { value ->
-                onChange { current ->
-                    current.copy(
-                        cells =
-                            current.cells.map {
-                                if (it.id == cell.id) it.copy(symbol = value.take(16)) else it
-                            }
-                    )
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    cell.symbol,
-                    handleSymbol,
-                    Modifier.weight(1f),
-                    label = { Text(stringResource(R.string.cell_symbol_label)) },
-                    singleLine = true,
-                    enabled = enabled,
-                )
-                OutlinedTextField(
-                    cell.label,
-                    handleLabel,
-                    Modifier.weight(2f),
-                    label = { Text(stringResource(R.string.cell_label)) },
-                    singleLine = true,
-                    enabled = enabled,
-                )
-            }
-        }
 }

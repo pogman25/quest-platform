@@ -21,6 +21,7 @@ fun ActionMessage(state: ActionState) {
 
 private fun errorMessage(error: QuestFailure): Int =
     when (error) {
+        QuestFailure.MATERIAL_EXPORT_FAILED -> R.string.error_material_export
         QuestFailure.PASSWORD_TOO_SHORT -> R.string.error_password_short
         QuestFailure.PASSWORD_MISMATCH -> R.string.error_password_mismatch
         QuestFailure.WRONG_PASSWORD -> R.string.error_wrong_password

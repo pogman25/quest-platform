@@ -31,8 +31,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import ru.pogman.questplatform.data.PhotoStore
+import ru.pogman.questplatform.domain.QuestConfig
+import ru.pogman.questplatform.domain.QuestType
 import ru.pogman.questplatform.domain.photoConfig
-import ru.pogman.questplatform.screens.GameEditorScreen
+import ru.pogman.questplatform.domain.updateQuest
+import ru.pogman.questplatform.screens.QuestSettingsScreen
 import ru.pogman.questplatform.theme.QuestTheme
 import ru.pogman.questplatform.viewmodel.OrganizerViewModel
 
@@ -67,15 +70,23 @@ class PhotoActionsTest {
                 val actions = rememberPhotoActions(game?.id, !action.busy, organizer)
                 QuestTheme {
                     game?.let {
-                        GameEditorScreen(
-                            it,
-                            organizer::photoUri,
+                        val quest = it.quests.single { quest -> quest.type == QuestType.PHOTO }
+                        val handleChange: ((QuestConfig) -> QuestConfig) -> Unit = { transform ->
+                            organizer.updateGame { game ->
+                                game.updateQuest(QuestType.PHOTO, transform)
+                            }
+                        }
+                        QuestSettingsScreen(
+                            it.id,
+                            quest,
                             action,
-                            organizer::updateGame,
-                            organizer::toggleQuest,
+                            organizer::photoUri,
+                            organizer::previewPhoto,
+                            handleChange,
                             actions.gallery,
                             actions.camera,
                             organizer::openNfcWriter,
+                            {},
                             organizer::saveGame,
                         )
                     }
@@ -109,7 +120,7 @@ class PhotoActionsTest {
         assertNotEquals(Intent.ACTION_OPEN_DOCUMENT, registry.intent!!.action)
         assertEquals("image/*", registry.intent!!.type)
         input.delete()
-        click("Сохранить игру")
+        click("Сохранить изменения")
         composeRule.waitUntil(timeoutMillis = 10_000) {
             !organizer.action.value.busy && organizer.editor.value == null
         }

@@ -1,5 +1,6 @@
 package ru.pogman.questplatform.components
 
+import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import ru.pogman.questplatform.domain.*
 
@@ -10,9 +11,11 @@ fun QuestEditor(
     enabled: Boolean,
     photoUri: (String) -> String,
     onChange: ((QuestConfig) -> QuestConfig) -> Unit,
-    onGallery: (QuestType) -> Unit,
-    onCamera: (QuestType) -> Unit,
+    onGallery: (PhotoTarget) -> Unit,
+    onCamera: (PhotoTarget) -> Unit,
     onWriteNfc: (String) -> Unit,
+    loadPhoto: suspend (String) -> Bitmap,
+    onExport: () -> Unit,
 ) {
     when (val config = quest.config) {
         is PhotoQuestConfig ->
@@ -28,18 +31,33 @@ fun QuestEditor(
         is QrQuestConfig ->
             QrQuestEditor(
                 config,
-                photoUri(config.photoRef),
                 enabled,
                 typedChange<QrQuestConfig>(onChange),
                 onGallery,
                 onCamera,
+                loadPhoto,
+                onExport,
             )
         is NfcQuestConfig ->
             NfcQuestEditor(config, enabled, typedChange<NfcQuestConfig>(onChange), onWriteNfc)
         is ChoiceQuestConfig ->
-            ChoiceQuestEditor(quest.type, config, enabled, typedChange<ChoiceQuestConfig>(onChange))
+            ChoiceQuestEditor(
+                quest.type,
+                config,
+                enabled,
+                photoUri,
+                typedChange<ChoiceQuestConfig>(onChange),
+                onGallery,
+                onCamera,
+            )
         is WordQuestConfig ->
-            WordQuestEditor(config, enabled, typedChange<WordQuestConfig>(onChange))
+            WordQuestEditor(
+                config,
+                enabled,
+                typedChange<WordQuestConfig>(onChange),
+                loadPhoto,
+                onExport,
+            )
     }
 }
 

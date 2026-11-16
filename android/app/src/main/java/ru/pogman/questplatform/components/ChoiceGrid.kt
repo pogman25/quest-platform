@@ -6,16 +6,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ru.pogman.questplatform.domain.ChoiceCell
+import coil3.compose.AsyncImage
+import ru.pogman.questplatform.domain.ChoiceItem
 
 @Composable
 fun ChoiceGrid(
-    cells: List<ChoiceCell>,
+    cells: List<ChoiceItem>,
     selected: List<String>,
     ordered: Boolean,
     enabled: Boolean,
@@ -52,11 +54,20 @@ fun ChoiceGrid(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Text(
-                                if (index >= 0 && ordered) "${index + 1} · ${cell.symbol}"
-                                else cell.symbol,
-                                fontSize = 28.sp,
-                            )
+                            if (cell.imageUri != null) {
+                                if (index >= 0 && ordered) Text("${index + 1}")
+                                AsyncImage(
+                                    cell.imageUri,
+                                    cell.label,
+                                    Modifier.size(56.dp),
+                                    contentScale = ContentScale.Fit,
+                                )
+                            } else
+                                Text(
+                                    if (index >= 0 && ordered) "${index + 1} · ${cell.symbol}"
+                                    else cell.symbol,
+                                    fontSize = 28.sp,
+                                )
                             Text(
                                 cell.label,
                                 style = MaterialTheme.typography.bodyMedium,

@@ -297,7 +297,8 @@ class QuestRepository(
                         config is QrQuestConfig &&
                             photos.exists(config.photoRef) &&
                             config.token.isNotBlank() &&
-                            config.token.length <= 512
+                            config.token.length <= 512 &&
+                            config.sizeMm in listOf(120, 150, 180)
                     QuestType.NFC ->
                         config is NfcQuestConfig &&
                             config.tags.size in 1..12 &&
@@ -319,7 +320,8 @@ class QuestRepository(
                                 it.label.isNotBlank() &&
                                     it.label.length <= 40 &&
                                     it.symbol.isNotBlank() &&
-                                    it.symbol.length <= 16
+                                    it.symbol.length <= 16 &&
+                                    (it.photoRef == null || photos.exists(it.photoRef))
                             } &&
                             config.answers.size ==
                                 (if (quest.type == QuestType.OBJECTS) 3 else 4) &&
@@ -328,7 +330,11 @@ class QuestRepository(
                     QuestType.STENCIL ->
                         config is WordQuestConfig &&
                             normalizeAnswer(config.word).matches(Regex("[а-яa-z]{4,12}")) &&
-                            normalizeAnswer(config.word).length % 2 == 0
+                            normalizeAnswer(config.word).length % 2 == 0 &&
+                            config.widthMm in listOf(144, 168, 184) &&
+                            config.correctOverlay in 1..8 &&
+                            config.strokeSeed in 0..0xffffffffL &&
+                            config.strokeVersion == 3
                 }
             if (!valid) fail(QuestFailure.GAME_INVALID)
         }
@@ -389,7 +395,9 @@ class QuestRepository(
                         quest.position,
                         config.instruction,
                         photo?.let(photos::displayUri),
-                        (config as? ChoiceQuestConfig)?.cells.orEmpty(),
+                        (config as? ChoiceQuestConfig)?.cells.orEmpty().map {
+                            it.forDisplay(photos::displayUri)
+                        },
                         quest.openedAt,
                         quest.solvedAt,
                         quest.digit.takeIf { quest.solvedAt != null },

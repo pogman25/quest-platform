@@ -1,8 +1,13 @@
 package ru.pogman.questplatform.data
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
+import androidx.core.content.ContextCompat
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +30,64 @@ class PhotoStore(
 
     fun exists(reference: String): Boolean =
         reference == DEMO_PHOTO || runCatching { resolve(reference).isFile }.getOrDefault(false)
+
+    suspend fun bitmap(reference: String, maxSize: Int = 2400): Bitmap =
+        withContext(Dispatchers.IO) {
+            if (reference == DEMO_PHOTO) {
+                val drawable =
+                    requireNotNull(ContextCompat.getDrawable(context, R.drawable.demo_room))
+                val ratio = drawable.intrinsicWidth.toDouble() / drawable.intrinsicHeight
+                val width = if (ratio >= 1) maxSize else (maxSize * ratio).toInt()
+                val height = if (ratio >= 1) (maxSize / ratio).toInt() else maxSize
+                return@withContext Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    .also {
+                        drawable.setBounds(0, 0, width, height)
+                        drawable.draw(Canvas(it))
+                    }
+            }
+            val file = resolve(reference)
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.path, options)
+            if (options.outWidth <= 0 || options.outHeight <= 0)
+                throw QuestException(QuestFailure.PHOTO_INVALID)
+            var sample = 1
+            while (maxOf(options.outWidth, options.outHeight) / sample > maxSize) sample *= 2
+            val original =
+                BitmapFactory.decodeFile(
+                    file.path,
+                    BitmapFactory.Options().apply { inSampleSize = sample },
+                ) ?: throw QuestException(QuestFailure.PHOTO_INVALID)
+            val matrix = Matrix()
+            val orientation = runCatching {
+                ExifInterface(file.path)
+                    .getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL,
+                    )
+            }
+                .getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+            when (orientation) {
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.setScale(-1f, 1f)
+                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.setRotate(180f)
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.setScale(1f, -1f)
+                ExifInterface.ORIENTATION_TRANSPOSE -> {
+                    matrix.setRotate(90f)
+                    matrix.postScale(-1f, 1f)
+                }
+                ExifInterface.ORIENTATION_ROTATE_90 -> matrix.setRotate(90f)
+                ExifInterface.ORIENTATION_TRANSVERSE -> {
+                    matrix.setRotate(-90f)
+                    matrix.postScale(-1f, 1f)
+                }
+                ExifInterface.ORIENTATION_ROTATE_270 -> matrix.setRotate(-90f)
+            }
+            val scale = minOf(1f, maxSize.toFloat() / maxOf(original.width, original.height))
+            matrix.postScale(scale, scale)
+            Bitmap.createBitmap(original, 0, 0, original.width, original.height, matrix, true)
+                .also {
+                    if (it !== original) original.recycle()
+                }
+        }
 
     fun discard(reference: String) {
         if (reference != DEMO_PHOTO) {

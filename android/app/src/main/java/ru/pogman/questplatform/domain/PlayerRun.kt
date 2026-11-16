@@ -5,7 +5,7 @@ data class PlayerQuest(
     val position: Int,
     val instruction: String,
     val photoUri: String?,
-    val cells: List<ChoiceCell>,
+    val cells: List<ChoiceItem>,
     val openedAt: Long?,
     val solvedAt: Long?,
     val reward: String?,
