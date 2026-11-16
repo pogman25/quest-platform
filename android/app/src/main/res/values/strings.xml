@@ -121,6 +121,7 @@
     <string name="quest_progress">Улики: %1$d из %2$d</string>
     <string name="quest_solved">Улика раскрыта</string>
     <string name="open_quest_action">Открыть улику</string>
+    <string name="view_quest_action">Посмотреть улику</string>
     <string name="quest_list_action">К уликам</string>
     <string name="quest_success_title">Улика раскрыта!</string>
     <string name="earned_digit_label">Ваша цифра</string>

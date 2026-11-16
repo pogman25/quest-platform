@@ -59,24 +59,7 @@ fun PlayerHomeScreen(
             }
             if (run.startedAt != null)
                 run.quests.forEach { quest ->
-                    val handleQuest = { onQuest(quest.type) }
-                    SectionCard("${quest.position}. ${quest.title}") {
-                        Text(
-                            stringResource(
-                                when {
-                                    quest.solvedAt != null -> R.string.quest_solved
-                                    quest.openedAt != null -> R.string.quest_in_progress
-                                    else -> R.string.quest_ready
-                                }
-                            )
-                        )
-                        quest.reward?.let {
-                            Text(stringResource(R.string.quest_reward, quest.position, it))
-                        }
-                        Button(onClick = handleQuest, enabled = !action.busy) {
-                            Text(stringResource(R.string.open_quest_action))
-                        }
-                    }
+                    PlayerQuestCard(quest, !action.busy, onQuest)
                 }
             if (run.finishedAt != null)
                 Button(onClick = onResult, modifier = Modifier.fillMaxWidth()) {
