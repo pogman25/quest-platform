@@ -217,8 +217,8 @@
     <string name="save_changes_action">Сохранить изменения</string>
     <string name="quest_setup_hint">Каждая улика настраивается отдельно. Потяните за значок в правом углу карточки, чтобы изменить порядок улик и место цифры в коде.</string>
     <string name="move_quest_action">Переместить улику «%1$s»</string>
-    <string name="configure_quest_action">Настроить улику</string>
-    <string name="remove_quest_action">Убрать из игры</string>
+    <string name="configure_quest_action">Настроить</string>
+    <string name="remove_quest_action">Убрать</string>
     <string name="add_quest_title">Добавить улику</string>
     <string name="pdf_save_hint">Перед выгрузкой PDF игра сохраняется. Выберите папку для файла, например «Загрузки».</string>
     <string name="search_games_label">Найти игру по названию</string>

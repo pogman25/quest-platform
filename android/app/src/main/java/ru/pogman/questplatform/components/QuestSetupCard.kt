@@ -3,10 +3,12 @@ package ru.pogman.questplatform.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ru.pogman.questplatform.R
 import ru.pogman.questplatform.domain.GameQuest
@@ -72,12 +74,24 @@ fun QuestSetupCard(
         },
     ) {
         Text(quest.config.instruction, maxLines = 2)
-        FlowRow {
-            Button(onOpen, enabled = enabled) {
-                Text(stringResource(R.string.configure_quest_action))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(onOpen, modifier = Modifier.weight(1f), enabled = enabled) {
+                Text(
+                    stringResource(R.string.configure_quest_action),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            TextButton(onRemove, enabled = enabled && count > 1) {
-                Text(stringResource(R.string.remove_quest_action))
+            TextButton(onRemove, modifier = Modifier.weight(1f), enabled = enabled && count > 1) {
+                Text(
+                    stringResource(R.string.remove_quest_action),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
