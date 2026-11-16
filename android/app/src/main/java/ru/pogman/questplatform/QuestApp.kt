@@ -10,23 +10,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import ru.pogman.questplatform.components.LoadingContent
 import ru.pogman.questplatform.components.QuestTopBar
+import ru.pogman.questplatform.components.UnavailableContent
+import ru.pogman.questplatform.domain.*
 import ru.pogman.questplatform.navigation.OrganizerContent
 import ru.pogman.questplatform.navigation.QuestRoute
 import ru.pogman.questplatform.navigation.requiresOrganizer
 import ru.pogman.questplatform.screens.BriefingScreen
 import ru.pogman.questplatform.screens.GameEditorScreen
+import ru.pogman.questplatform.screens.NfcWriterScreen
 import ru.pogman.questplatform.screens.OrganizerEntryScreen
 import ru.pogman.questplatform.screens.OrganizerGamesScreen
 import ru.pogman.questplatform.screens.PasswordChangeScreen
-import ru.pogman.questplatform.screens.PhotoQuestScreen
 import ru.pogman.questplatform.screens.PlayerHomeScreen
 import ru.pogman.questplatform.screens.PrepareRunScreen
+import ru.pogman.questplatform.screens.QuestScreen
 import ru.pogman.questplatform.screens.ResultScreen
 import ru.pogman.questplatform.screens.RunHistoryScreen
 import ru.pogman.questplatform.theme.QuestTheme
@@ -45,7 +49,8 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
     val editor by organizer.editor.collectAsStateWithLifecycle()
     val run by player.run.collectAsStateWithLifecycle()
     val playerLoading by player.loading.collectAsStateWithLifecycle()
-    val incorrect by player.incorrectAnswer.collectAsStateWithLifecycle()
+    val feedback by player.feedback.collectAsStateWithLifecycle()
+    val nfcResult by organizer.nfcResult.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(QuestRoute.Player)
     val currentRoute = backStack.last()
 
@@ -64,7 +69,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
         }
     }
     val handlePlayer = {
-        if (currentRoute == QuestRoute.GameEditor) {
+        if (currentRoute == QuestRoute.GameEditor || currentRoute is QuestRoute.NfcWriter) {
             organizer.saveAndSwitchToPlayer()
         } else {
             organizer.leaveOrganizer()
@@ -84,6 +89,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
             handlePlayer()
         } else if (backStack.size > 1) {
             if (currentRoute == QuestRoute.GameEditor) organizer.leaveOrganizer()
+            if (currentRoute is QuestRoute.NfcWriter) organizer.stopNfcInteraction()
             organizer.clearError()
             player.clearError()
             backStack.removeLastOrNull()
@@ -140,9 +146,16 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                 OrganizerEvent.PasswordChanged -> backStack.removeLastOrNull()
                 OrganizerEvent.PlayerMode -> returnToPlayer()
                 is OrganizerEvent.PrepareGame -> {
-                    backStack.removeLastOrNull()
+                    while (
+                        backStack.lastOrNull() == QuestRoute.GameEditor ||
+                            backStack.lastOrNull() is QuestRoute.NfcWriter
+                    ) {
+                        backStack.removeLastOrNull()
+                    }
                     backStack.add(QuestRoute.PrepareRun(event.gameId))
                 }
+                is OrganizerEvent.NfcWriter ->
+                    backStack.add(QuestRoute.NfcWriter(event.gameId, event.tagId))
                 is OrganizerEvent.HandedOver -> {
                     player.resetInteraction()
                     backStack.clear()
@@ -154,6 +167,10 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
     }
     LaunchedEffect(currentRoute) {
         if (currentRoute == QuestRoute.Instructions) showNotebook()
+        if (currentRoute == QuestRoute.PhotoQuest) {
+            backStack.removeLastOrNull()
+            backStack.add(QuestRoute.QuestDetails(QuestType.PHOTO.id))
+        }
     }
     LaunchedEffect(player) {
         player.events.collect { event ->
@@ -162,11 +179,11 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                     backStack.clear()
                     backStack.add(QuestRoute.Player)
                 }
-                PlayerEvent.OpenedPhoto -> backStack.add(QuestRoute.PhotoQuest)
-                PlayerEvent.Solved -> {
+                is PlayerEvent.OpenedQuest -> backStack.add(QuestRoute.QuestDetails(event.type.id))
+                is PlayerEvent.Solved -> {
                     backStack.clear()
                     backStack.add(QuestRoute.Player)
-                    backStack.add(QuestRoute.Result)
+                    if (event.finished) backStack.add(QuestRoute.Result)
                 }
             }
         }
@@ -179,7 +196,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
         }
     }
 
-    val title =
+    val titleResource =
         when (currentRoute) {
             QuestRoute.OrganizerEntry -> R.string.organizer_title
             QuestRoute.OrganizerGames -> R.string.organizer_games_title
@@ -190,8 +207,14 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
             QuestRoute.Result -> R.string.results_action
             is QuestRoute.PrepareRun -> R.string.prepare_action
             is QuestRoute.Briefing -> R.string.briefing_action
+            is QuestRoute.NfcWriter -> R.string.nfc_writer_title
             else -> R.string.app_name
         }
+    val title =
+        if (currentRoute is QuestRoute.QuestDetails)
+            run?.quests?.find { it.type.id == currentRoute.questId }?.title
+                ?: stringResource(titleResource)
+        else stringResource(titleResource)
 
     QuestTheme {
         Scaffold(
@@ -199,7 +222,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                 QuestTopBar(
                     title =
                         if (currentRoute.requiresOrganizer && !access.authorized)
-                            R.string.organizer_title
+                            stringResource(R.string.organizer_title)
                         else title,
                     canGoBack = backStack.size > 1,
                     onBack = handleBack,
@@ -242,7 +265,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                         run,
                                         playerAction,
                                         handleBriefing,
-                                        player::openPhoto,
+                                        player::openQuest,
                                         handleResult,
                                     )
                                 }
@@ -276,11 +299,13 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                         editor?.let { game ->
                                             GameEditorScreen(
                                                 game,
-                                                organizer.photoUri(game),
+                                                organizer::photoUri,
                                                 organizerAction,
                                                 organizer::updateGame,
+                                                organizer::toggleQuest,
                                                 photoActions.gallery,
                                                 photoActions.camera,
+                                                organizer::openNfcWriter,
                                                 organizer::saveGame,
                                             )
                                         } ?: LoadingContent()
@@ -325,15 +350,64 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                     else LoadingContent()
                                 }
                                 entry<QuestRoute.PhotoQuest> {
-                                    run?.let {
-                                        PhotoQuestScreen(
-                                            it,
+                                    LoadingContent()
+                                }
+                                entry<QuestRoute.QuestDetails> { route ->
+                                    val selected = run
+                                    val quest =
+                                        selected?.quests?.find { it.type.id == route.questId }
+                                    if (selected != null && selected.startedAt == null)
+                                        BriefingScreen(selected, playerAction, player::start)
+                                    else if (selected != null && quest != null) {
+                                        val handleSubmit: (QuestAnswer) -> Unit = {
+                                            player.submitAnswer(quest.type, it)
+                                        }
+                                        QuestScreen(
+                                            selected.id,
+                                            quest,
+                                            selected.finishedAt != null,
+                                            currentRoute == route,
                                             playerAction,
-                                            incorrect,
-                                            player::submitAnswer,
+                                            feedback,
+                                            handleSubmit,
+                                            player::readNfc,
+                                            player::reportScannerFailure,
+                                            showNotebook,
                                             handleResult,
                                         )
-                                    } ?: LoadingContent()
+                                    } else
+                                        UnavailableContent(
+                                            R.string.error_quest_not_found,
+                                            showNotebook,
+                                        )
+                                }
+                                entry<QuestRoute.NfcWriter> { route ->
+                                    OrganizerContent(access.authorized) {
+                                        val config =
+                                            editor
+                                                ?.takeIf { it.id == route.gameId }
+                                                ?.quests
+                                                ?.find { it.type == QuestType.NFC }
+                                                ?.config as? NfcQuestConfig
+                                        val tag = config?.tags?.find { it.id == route.tagId }
+                                        val handleTag: (android.nfc.Tag, Boolean) -> Unit =
+                                            { value, verify ->
+                                                organizer.writeNfcTag(value, route.tagId, verify)
+                                            }
+                                        if (tag != null)
+                                            NfcWriterScreen(
+                                                tag,
+                                                currentRoute == route,
+                                                organizerAction,
+                                                nfcResult,
+                                                handleTag,
+                                            )
+                                        else
+                                            UnavailableContent(
+                                                R.string.error_game_invalid,
+                                                handleBack,
+                                            )
+                                    }
                                 }
                                 entry<QuestRoute.Result> {
                                     run?.takeIf { it.finishedAt != null }

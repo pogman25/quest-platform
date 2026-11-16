@@ -1,7 +1,9 @@
 package ru.pogman.questplatform
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
@@ -9,6 +11,7 @@ import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.result.ActivityResultRegistry
 import androidx.activity.result.ActivityResultRegistryOwner
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.*
@@ -28,6 +31,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import ru.pogman.questplatform.data.PhotoStore
+import ru.pogman.questplatform.domain.photoConfig
 import ru.pogman.questplatform.screens.GameEditorScreen
 import ru.pogman.questplatform.theme.QuestTheme
 import ru.pogman.questplatform.viewmodel.OrganizerViewModel
@@ -65,11 +69,13 @@ class PhotoActionsTest {
                     game?.let {
                         GameEditorScreen(
                             it,
-                            organizer.photoUri(it),
+                            organizer::photoUri,
                             action,
                             organizer::updateGame,
+                            organizer::toggleQuest,
                             actions.gallery,
                             actions.camera,
+                            organizer::openNfcWriter,
                             organizer::saveGame,
                         )
                     }
@@ -109,11 +115,11 @@ class PhotoActionsTest {
         }
         runBlocking {
             val saved = fixture.container.repository.loadGame("detective-photo-demo")
-            assertEquals(reference, saved.photo.photoRef)
+            assertEquals(reference, saved.photoConfig()!!.photoRef)
             assertTrue(fixture.container.photos.exists(reference))
             assertEquals(
                 fixture.container.photos.displayUri(reference),
-                fixture.container.repository.activeRun.first()!!.quest.photoUri,
+                fixture.container.repository.activeRun.first()!!.quests.single().photoUri,
             )
         }
     }
@@ -123,7 +129,7 @@ class PhotoActionsTest {
         registry.cancel = true
         click("Снять фото")
         composeRule.waitForIdle()
-        assertEquals(PhotoStore.DEMO_PHOTO, organizer.editor.value!!.photo.photoRef)
+        assertEquals(PhotoStore.DEMO_PHOTO, organizer.editor.value!!.photoConfig()!!.photoRef)
         assertTemporaryOutputDeleted()
         registry.cancel = false
         click("Снять фото")
@@ -147,7 +153,7 @@ class PhotoActionsTest {
         }
         composeRule.runOnUiThread { registry.finishCamera() }
         composeRule.waitUntil(timeoutMillis = 10_000) { !organizer.action.value.busy }
-        assertEquals(PhotoStore.DEMO_PHOTO, organizer.editor.value!!.photo.photoRef)
+        assertEquals(PhotoStore.DEMO_PHOTO, organizer.editor.value!!.photoConfig()!!.photoRef)
         assertTemporaryOutputDeleted()
     }
 
@@ -157,10 +163,10 @@ class PhotoActionsTest {
 
     private fun waitForImportedPhoto(): String {
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            organizer.editor.value?.photo?.photoRef != PhotoStore.DEMO_PHOTO &&
+            organizer.editor.value?.photoConfig()?.photoRef != PhotoStore.DEMO_PHOTO &&
                 !organizer.action.value.busy
         }
-        return organizer.editor.value!!.photo.photoRef.also(imported::add)
+        return organizer.editor.value!!.photoConfig()!!.photoRef.also(imported::add)
     }
 
     private fun assertTemporaryOutputDeleted() {
@@ -196,6 +202,26 @@ class PhotoActionsTest {
             options: ActivityOptionsCompat?,
         ) {
             intent = contract.createIntent(context, input)
+            if (
+                intent!!.action ==
+                    ActivityResultContracts.RequestMultiplePermissions.ACTION_REQUEST_PERMISSIONS
+            ) {
+                dispatchResult(
+                    requestCode,
+                    Activity.RESULT_OK,
+                    Intent()
+                        .putExtra(
+                            ActivityResultContracts.RequestMultiplePermissions.EXTRA_PERMISSIONS,
+                            arrayOf(Manifest.permission.CAMERA),
+                        )
+                        .putExtra(
+                            ActivityResultContracts.RequestMultiplePermissions
+                                .EXTRA_PERMISSION_GRANT_RESULTS,
+                            intArrayOf(PackageManager.PERMISSION_GRANTED),
+                        ),
+                )
+                return
+            }
             if (intent!!.action == MediaStore.ACTION_IMAGE_CAPTURE) {
                 @Suppress("DEPRECATION")
                 val uri = intent!!.getParcelableExtra<Uri>(MediaStore.EXTRA_OUTPUT)!!

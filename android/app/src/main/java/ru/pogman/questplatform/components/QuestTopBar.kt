@@ -1,6 +1,5 @@
 package ru.pogman.questplatform.components
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -20,7 +19,7 @@ import ru.pogman.questplatform.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestTopBar(
-    @StringRes title: Int,
+    title: String,
     canGoBack: Boolean,
     onBack: () -> Unit,
     onOrganizer: (() -> Unit)? = null,
@@ -32,7 +31,7 @@ fun QuestTopBar(
     TopAppBar(
         title = {
             Text(
-                stringResource(title),
+                title,
                 fontSize = 18.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

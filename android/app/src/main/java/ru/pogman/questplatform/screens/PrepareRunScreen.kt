@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -25,8 +26,11 @@ fun PrepareRunScreen(game: GameSummary, action: ActionState, onPrepare: (String,
     var team by rememberSaveable(game.id) { mutableStateOf("") }
     var code by rememberSaveable(game.id) { mutableStateOf("") }
     val handleTeam: (String) -> Unit = { team = it.take(80) }
-    val handleCode: (String) -> Unit = { code = it.filter { char -> char in '0'..'9' }.take(1) }
+    val handleCode: (String) -> Unit = {
+        code = it.filter { char -> char in '0'..'9' }.take(game.questCount)
+    }
     val handlePrepare = { onPrepare(team, code) }
+    LaunchedEffect(game.questCount) { code = code.take(game.questCount) }
 
     ScreenContent {
         Text(game.title, style = MaterialTheme.typography.headlineLarge)
@@ -44,7 +48,7 @@ fun PrepareRunScreen(game: GameSummary, action: ActionState, onPrepare: (String,
             handleCode,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.lock_code_label)) },
-            supportingText = { Text(stringResource(R.string.lock_code_hint)) },
+            supportingText = { Text(stringResource(R.string.lock_code_hint, game.questCount)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             enabled = !action.busy,
@@ -52,7 +56,7 @@ fun PrepareRunScreen(game: GameSummary, action: ActionState, onPrepare: (String,
         ActionMessage(action)
         Button(
             onClick = handlePrepare,
-            enabled = !action.busy && team.isNotBlank() && code.length == 1,
+            enabled = !action.busy && team.isNotBlank() && code.length == game.questCount,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(R.string.handover_action))

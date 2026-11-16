@@ -44,12 +44,14 @@ fun RunHistoryCard(
         if (run.startedAt != null) {
             ElapsedTime(run.startedAt, run.finishedAt, stringResource(R.string.total_time_label))
         }
-        if (run.questOpenedAt != null) {
-            ElapsedTime(
-                run.questOpenedAt,
-                run.questSolvedAt,
-                stringResource(R.string.quest_time_label),
-            )
+        run.quests.forEach { quest ->
+            Text("${quest.position}. ${quest.title}")
+            if (quest.openedAt != null)
+                ElapsedTime(
+                    quest.openedAt,
+                    quest.solvedAt,
+                    stringResource(R.string.quest_time_label),
+                )
         }
         Text(stringResource(R.string.attempt_statistics, run.attempts, run.incorrectAttempts))
         if (run.log.isNotEmpty()) {
@@ -72,7 +74,7 @@ fun RunHistoryCard(
                             if (attempt.correct) R.string.attempt_correct
                             else R.string.attempt_incorrect
                         )
-                    Text("$time · ${attempt.answer} · $result")
+                    Text("$time · ${attempt.questTitle} · ${attempt.answer} · $result")
                 }
             }
         }

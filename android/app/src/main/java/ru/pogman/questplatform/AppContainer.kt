@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import ru.pogman.questplatform.data.CameraPhotoStore
+import ru.pogman.questplatform.data.NfcTagStore
 import ru.pogman.questplatform.data.OrganizerAccess
 import ru.pogman.questplatform.data.PhotoStore
 import ru.pogman.questplatform.data.QuestDatabase
@@ -22,6 +23,7 @@ class AppContainer(
     val access = OrganizerAccess(database)
     val photos = PhotoStore(context)
     val cameraPhotos = CameraPhotoStore(context)
+    val nfc = NfcTagStore()
     val repository = QuestRepository(database, access, photos, clock)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 

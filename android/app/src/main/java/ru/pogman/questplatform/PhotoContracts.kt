@@ -26,9 +26,7 @@ class LocalPhotoContract : ActivityResultContracts.PickVisualMedia() {
 class CameraPhotoContract : ActivityResultContracts.TakePicture() {
     override fun createIntent(context: Context, input: Uri): Intent =
         super.createIntent(context, input).apply {
-            // Requests understood by common camera apps; external apps may ignore lens hints.
-            putExtra("android.intent.extras.CAMERA_FACING", 0) // Legacy Camera API: back = 0.
-            putExtra("android.intent.extra.USE_FRONT_CAMERA", false)
+            // Photo capture stays in the system camera; its lens is selected there.
             addFlags(
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )

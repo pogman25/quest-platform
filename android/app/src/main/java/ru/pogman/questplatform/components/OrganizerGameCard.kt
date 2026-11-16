@@ -6,6 +6,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ru.pogman.questplatform.R
@@ -24,7 +25,7 @@ fun OrganizerGameCard(
     val handleDelete = { onDelete(game.id) }
 
     SectionCard(game.title) {
-        Text(stringResource(R.string.photo_quest_count))
+        Text(pluralStringResource(R.plurals.quest_count, game.questCount, game.questCount))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = handlePrepare, enabled = enabled) {
                 Text(stringResource(R.string.prepare_action))

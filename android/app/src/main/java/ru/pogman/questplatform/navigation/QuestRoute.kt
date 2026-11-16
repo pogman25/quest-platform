@@ -25,6 +25,10 @@ sealed interface QuestRoute : NavKey {
 
     @Serializable data object PhotoQuest : QuestRoute
 
+    @Serializable data class QuestDetails(val questId: String) : QuestRoute
+
+    @Serializable data class NfcWriter(val gameId: String, val tagId: String) : QuestRoute
+
     @Serializable data object Result : QuestRoute
 }
 
@@ -34,4 +38,5 @@ val NavKey.requiresOrganizer: Boolean
             this == QuestRoute.GameEditor ||
             this is QuestRoute.PrepareRun ||
             this == QuestRoute.RunHistory ||
-            this == QuestRoute.PasswordChange
+            this == QuestRoute.PasswordChange ||
+            this is QuestRoute.NfcWriter

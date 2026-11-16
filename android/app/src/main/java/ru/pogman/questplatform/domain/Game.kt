@@ -4,17 +4,17 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class PhotoQuestConfig(
-    val instruction: String,
+    override val instruction: String,
     val photoRef: String,
     val answers: List<String>,
-)
+) : QuestConfig
 
 data class Game(
     val id: String,
     val title: String,
     val story: String,
     val rules: String,
-    val photo: PhotoQuestConfig,
+    val quests: List<GameQuest>,
 )
 
-data class GameSummary(val id: String, val title: String)
+data class GameSummary(val id: String, val title: String, val questCount: Int)

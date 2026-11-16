@@ -9,7 +9,7 @@ class QuestViewModelFactory(private val container: AppContainer) : ViewModelProv
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         when (modelClass) {
             OrganizerViewModel::class.java -> OrganizerViewModel(container) as T
-            PlayerViewModel::class.java -> PlayerViewModel(container.repository) as T
+            PlayerViewModel::class.java -> PlayerViewModel(container.repository, container.nfc) as T
             else -> error("Unknown ViewModel: ${modelClass.name}")
         }
 }

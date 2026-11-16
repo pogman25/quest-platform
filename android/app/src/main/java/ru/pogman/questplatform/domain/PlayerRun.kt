@@ -1,13 +1,18 @@
 package ru.pogman.questplatform.domain
 
 data class PlayerQuest(
-    val title: String,
+    val type: QuestType,
+    val position: Int,
     val instruction: String,
-    val photoUri: String,
+    val photoUri: String?,
+    val cells: List<ChoiceCell>,
     val openedAt: Long?,
     val solvedAt: Long?,
     val reward: String?,
-)
+) {
+    val title: String
+        get() = type.title
+}
 
 data class PlayerRun(
     val id: String,
@@ -17,12 +22,30 @@ data class PlayerRun(
     val rules: String,
     val startedAt: Long?,
     val finishedAt: Long?,
-    val quest: PlayerQuest,
+    val quests: List<PlayerQuest>,
     val gameId: String,
 ) {
     val finalCode: String?
-        get() = quest.reward.takeIf { finishedAt != null }
+        get() =
+            if (finishedAt != null && quests.isNotEmpty() && quests.all { it.reward != null })
+                quests.sortedBy { it.position }.joinToString("") { it.reward.orEmpty() }
+            else null
+
+    val slowestQuest: PlayerQuest?
+        get() =
+            if (finishedAt != null)
+                quests
+                    .sortedBy { it.position }
+                    .maxByOrNull { elapsedSeconds(it.openedAt, it.solvedAt, finishedAt) ?: 0 }
+            else null
 }
+
+data class QuestRunSummary(
+    val title: String,
+    val position: Int,
+    val openedAt: Long?,
+    val solvedAt: Long?,
+)
 
 data class RunSummary(
     val id: String,
@@ -33,9 +56,13 @@ data class RunSummary(
     val finishedAt: Long?,
     val attempts: Int,
     val incorrectAttempts: Int,
-    val questOpenedAt: Long?,
-    val questSolvedAt: Long?,
+    val quests: List<QuestRunSummary>,
     val log: List<AnswerAttempt>,
 )
 
-data class AnswerAttempt(val answer: String, val correct: Boolean, val submittedAt: Long)
+data class AnswerAttempt(
+    val questTitle: String,
+    val answer: String,
+    val correct: Boolean,
+    val submittedAt: Long,
+)

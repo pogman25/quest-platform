@@ -32,6 +32,17 @@ private fun errorMessage(error: QuestFailure): Int =
         QuestFailure.CODE_INVALID -> R.string.error_code
         QuestFailure.RUN_NOT_FOUND -> R.string.error_run_not_found
         QuestFailure.RUN_NOT_STARTED -> R.string.error_run_not_started
+        QuestFailure.RUN_LAYOUT_CHANGED -> R.string.error_run_layout
+        QuestFailure.QUEST_NOT_FOUND -> R.string.error_quest_not_found
+        QuestFailure.NFC_UNAVAILABLE -> R.string.nfc_unavailable
+        QuestFailure.NFC_DISABLED -> R.string.nfc_disabled
+        QuestFailure.NFC_NO_TEXT -> R.string.error_nfc_no_text
+        QuestFailure.NFC_READ_ONLY -> R.string.error_nfc_read_only
+        QuestFailure.NFC_TOO_SMALL -> R.string.error_nfc_too_small
+        QuestFailure.NFC_IO -> R.string.error_nfc_io
+        QuestFailure.NFC_WRONG_TAG -> R.string.error_nfc_wrong_tag
+        QuestFailure.CAMERA_UNAVAILABLE -> R.string.error_camera
+        QuestFailure.CAMERA_PERMISSION_REQUIRED -> R.string.error_camera_permission
         QuestFailure.PHOTO_INVALID -> R.string.error_photo
         QuestFailure.PHOTO_SOURCE_UNAVAILABLE -> R.string.error_photo_source
         QuestFailure.STORAGE_ERROR -> R.string.error_storage

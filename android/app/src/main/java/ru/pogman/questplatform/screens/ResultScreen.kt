@@ -32,12 +32,14 @@ fun ResultScreen(run: PlayerRun, onReturn: () -> Unit) {
         }
         ElapsedTime(run.startedAt, run.finishedAt, stringResource(R.string.total_time_label))
         SectionCard(stringResource(R.string.slowest_quest_label)) {
-            Text(run.quest.title)
-            ElapsedTime(
-                run.quest.openedAt,
-                run.quest.solvedAt,
-                stringResource(R.string.quest_time_label),
-            )
+            run.slowestQuest?.let { quest ->
+                Text(quest.title)
+                ElapsedTime(
+                    quest.openedAt,
+                    quest.solvedAt,
+                    stringResource(R.string.quest_time_label),
+                )
+            }
         }
         Button(onClick = onReturn, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.notebook_action))

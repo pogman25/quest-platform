@@ -36,7 +36,7 @@ class PhotoFlowTest {
         click("Сохранить игру")
         click("Подготовить игру")
         fill("Название команды", "Следопыты")
-        fill("Цифра замка", "0")
+        fill("Код замка", "0")
         click("Передать команде")
         waitFor("Начать расследование")
         assertTrue(fixture.container.access.authorized.value)

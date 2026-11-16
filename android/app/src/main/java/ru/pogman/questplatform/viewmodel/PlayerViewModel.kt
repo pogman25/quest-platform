@@ -1,57 +1,75 @@
 package ru.pogman.questplatform.viewmodel
 
+import android.nfc.Tag
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
+import ru.pogman.questplatform.data.NfcTagStore
 import ru.pogman.questplatform.data.QuestRepository
+import ru.pogman.questplatform.domain.*
 
 sealed interface PlayerEvent {
     data object Started : PlayerEvent
 
-    data object OpenedPhoto : PlayerEvent
+    data class OpenedQuest(val type: QuestType) : PlayerEvent
 
-    data object Solved : PlayerEvent
+    data class Solved(val finished: Boolean) : PlayerEvent
 }
 
-class PlayerViewModel(private val repository: QuestRepository) : ActionViewModel() {
+class PlayerViewModel(private val repository: QuestRepository, private val nfc: NfcTagStore) :
+    ActionViewModel() {
     private val mutableLoading = MutableStateFlow(true)
     val loading = mutableLoading.asStateFlow()
+    private val mutableFeedback = MutableStateFlow<AnswerVerdict?>(null)
+    val feedback = mutableFeedback.asStateFlow()
     val run =
         repository.activeRun
             .onEach { mutableLoading.value = false }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
     private val channel = Channel<PlayerEvent>(Channel.BUFFERED)
     val events = channel.receiveAsFlow()
-    private val incorrect = MutableStateFlow(false)
-    val incorrectAnswer = incorrect.asStateFlow()
 
     fun resetInteraction() {
         cancelPending()
-        incorrect.value = false
+        mutableFeedback.value = null
     }
 
-    fun start() = perform {
-        repository.startRun()
-        channel.send(PlayerEvent.Started)
+    fun start() {
+        val id = run.value?.id ?: return
+        perform {
+            repository.startRun(id)
+            channel.send(PlayerEvent.Started)
+        }
     }
 
-    fun openPhoto() = perform {
-        incorrect.value = false
-        repository.openPhoto()
-        channel.send(PlayerEvent.OpenedPhoto)
+    fun openQuest(type: QuestType) {
+        val id = run.value?.id ?: return
+        perform {
+            mutableFeedback.value = null
+            repository.openQuest(type, id)
+            channel.send(PlayerEvent.OpenedQuest(type))
+        }
     }
 
-    fun submitAnswer(answer: String) = perform {
-        incorrect.value = false
-        if (repository.submitAnswer(answer)) {
-            channel.send(PlayerEvent.Solved)
-        } else {
-            incorrect.value = true
+    fun submitAnswer(type: QuestType, answer: QuestAnswer) {
+        val id = run.value?.id ?: return
+        perform { resolve(type, answer, id) }
+    }
+
+    fun readNfc(tag: Tag) {
+        val id = run.value?.id ?: return
+        perform { resolve(QuestType.NFC, QuestAnswer.Token(nfc.read(tag)), id) }
+    }
+
+    fun reportScannerFailure() = reportFailure(QuestFailure.CAMERA_UNAVAILABLE)
+
+    private suspend fun resolve(type: QuestType, answer: QuestAnswer, runId: String) {
+        mutableFeedback.value = null
+        val result = repository.submitAnswer(type, answer, runId)
+        mutableFeedback.value = result
+        if (result == AnswerVerdict.CORRECT) {
+            val current = repository.activeRun.first { it?.id == runId }
+            channel.send(PlayerEvent.Solved(current?.finishedAt != null))
         }
     }
 }

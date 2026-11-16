@@ -16,8 +16,7 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import ru.pogman.questplatform.data.*
-import ru.pogman.questplatform.domain.QuestException
-import ru.pogman.questplatform.domain.QuestFailure
+import ru.pogman.questplatform.domain.*
 
 class RepositoryTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -53,27 +52,31 @@ class RepositoryTest {
         val id = repository.prepareRun(game.id, "Команда 1", "0")
         repository.prepareRun(game.id, "Другая команда", "8")
         repository.saveGame(
-            game.copy(title = "Изменённая игра", photo = game.photo.copy(answers = listOf("книга")))
+            game
+                .updateQuest(QuestType.PHOTO) {
+                    (it as PhotoQuestConfig).copy(answers = listOf("книга"))
+                }
+                .copy(title = "Изменённая игра")
         )
         repository.deleteGame(game.id)
         repository.selectRun(id)
         assertEquals(game.title, repository.activeRun.first()!!.gameTitle)
-        assertNull(repository.activeRun.first()!!.quest.reward)
+        assertNull(repository.activeRun.first()!!.quests.single().reward)
         assertNull(repository.activeRun.first()!!.finalCode)
         assertNull(repository.activeRun.first()!!.startedAt)
-        expectFailure(QuestFailure.RUN_NOT_STARTED) { repository.submitAnswer("лампа") }
+        expectFailure(QuestFailure.RUN_NOT_STARTED) { repository.submitPhoto("лампа") }
         clock.now = 10_000
         repository.startRun()
         clock.now = 12_000
         repository.startRun()
-        repository.openPhoto()
+        repository.openQuest(QuestType.PHOTO)
         clock.now = 15_000
-        repository.openPhoto()
-        repeat(5) { assertFalse(repository.submitAnswer("стул")) }
+        repository.openQuest(QuestType.PHOTO)
+        repeat(5) { assertFalse(repository.submitPhoto("стул")) }
         clock.now = 20_000
-        assertTrue(repository.submitAnswer("  НАСТОЛЬНАЯ ЛАМПА  "))
+        assertTrue(repository.submitPhoto("  НАСТОЛЬНАЯ ЛАМПА  "))
         clock.now = 30_000
-        assertTrue(repository.submitAnswer("лампа"))
+        assertTrue(repository.submitPhoto("лампа"))
         val result = database.quests().run(id)!!
         assertEquals(10_000L, result.run.startedAt)
         assertEquals(12_000L, result.quests.single().openedAt)
@@ -116,10 +119,14 @@ class RepositoryTest {
             input.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
             val reference = photos.import(Uri.fromFile(input))
             val game = repository.loadGame("detective-photo-demo")
-            repository.saveGame(game.copy(photo = game.photo.copy(photoRef = reference)))
+            repository.saveGame(
+                game.updateQuest(QuestType.PHOTO) {
+                    (it as PhotoQuestConfig).copy(photoRef = reference)
+                }
+            )
             val id = repository.prepareRun(game.id, "Фото-команда", "7")
             repository.startRun()
-            repository.openPhoto()
+            repository.openQuest(QuestType.PHOTO)
             input.delete()
             database.close()
             database =
@@ -131,10 +138,10 @@ class RepositoryTest {
             val run = restarted.activeRun.first()!!
             assertEquals(id, run.id)
             assertNotNull(run.startedAt)
-            assertNotNull(run.quest.openedAt)
-            assertTrue(File(Uri.parse(run.quest.photoUri).path!!).isFile)
+            assertNotNull(run.quests.single().openedAt)
+            assertTrue(File(Uri.parse(run.quests.single().photoUri).path!!).isFile)
             assertFalse(restartedAccess.authorized.value)
-            assertTrue(restarted.submitAnswer("лампа"))
+            assertTrue(restarted.submitPhoto("лампа"))
             assertEquals("7", restarted.activeRun.first()!!.finalCode)
         } finally {
             bitmap.recycle()
@@ -147,14 +154,14 @@ class RepositoryTest {
         val game = repository.loadGame("detective-photo-demo")
         val selectedId = repository.prepareRun(game.id, "Повторная команда", "3")
         repository.startRun()
-        repository.openPhoto()
-        repository.submitAnswer("книга")
-        repository.submitAnswer("лампа")
+        repository.openQuest(QuestType.PHOTO)
+        repository.submitPhoto("книга")
+        repository.submitPhoto("лампа")
         val snapshot = database.quests().run(selectedId)!!
         val otherId = repository.prepareRun(game.id, "Другая команда", "7")
         repository.startRun()
-        repository.openPhoto()
-        repository.submitAnswer("стул")
+        repository.openQuest(QuestType.PHOTO)
+        repository.submitPhoto("стул")
         val other = database.quests().run(otherId)!!
         repository.deleteGame(game.id)
         access.logout()
@@ -178,15 +185,80 @@ class RepositoryTest {
         assertTrue(restarted.attempts.isEmpty())
         assertEquals(other, database.quests().run(otherId))
         assertEquals(restartedId, repository.activeRun.first()!!.id)
-        assertNull(repository.activeRun.first()!!.quest.reward)
+        assertNull(repository.activeRun.first()!!.quests.single().reward)
         assertNull(repository.activeRun.first()!!.finalCode)
         assertEquals(2, repository.history.first().size)
-        expectFailure(QuestFailure.RUN_NOT_STARTED) { repository.submitAnswer("лампа") }
+        expectFailure(QuestFailure.RUN_NOT_STARTED) { repository.submitPhoto("лампа") }
         repository.startRun()
-        repository.openPhoto()
-        assertTrue(repository.submitAnswer("лампа"))
+        repository.openQuest(QuestType.PHOTO)
+        assertTrue(repository.submitPhoto("лампа"))
         assertEquals("3", repository.activeRun.first()!!.finalCode)
         assertEquals(1, database.quests().run(restartedId)!!.attempts.size)
+    }
+
+    @Test
+    fun sixCluesCanBeSolvedOutOfOrderWithoutFinishingEarly() = runBlocking {
+        val game = repository.newGame()
+        repository.saveGame(game)
+        val id = repository.prepareRun(game.id, "Шесть улик", "012345")
+        repository.startRun()
+        val nfc = game.quests.single { it.type == QuestType.NFC }.config as NfcQuestConfig
+        assertEquals(
+            AnswerVerdict.UNKNOWN_TAG,
+            repository.submitAnswer(QuestType.NFC, QuestAnswer.Token("unknown")),
+        )
+        assertTrue(database.quests().run(id)!!.attempts.isEmpty())
+        val falseTag = nfc.tags.first { it.id != nfc.correctId }
+        assertEquals(
+            AnswerVerdict.INCORRECT,
+            repository.submitAnswer(QuestType.NFC, QuestAnswer.Token(falseTag.token)),
+        )
+        game.quests
+            .filter { it.type != QuestType.PHOTO }
+            .reversed()
+            .forEach { quest ->
+                clock.now += 1_000
+                repository.openQuest(quest.type)
+                val answer =
+                    when (val config = quest.config) {
+                        is NfcQuestConfig ->
+                            QuestAnswer.Token(
+                                config.tags.single { it.id == config.correctId }.token
+                            )
+                        is QrQuestConfig -> QuestAnswer.Token(config.token)
+                        is ChoiceQuestConfig ->
+                            QuestAnswer.Selection(
+                                if (quest.type == QuestType.OBJECTS) config.answers.reversed()
+                                else config.answers
+                            )
+                        is WordQuestConfig -> QuestAnswer.Text(config.word.uppercase())
+                        is PhotoQuestConfig -> QuestAnswer.Text(config.answers.first())
+                    }
+                assertEquals(AnswerVerdict.CORRECT, repository.submitAnswer(quest.type, answer))
+                assertNull(repository.activeRun.first()!!.finalCode)
+            }
+        repository.openQuest(QuestType.PHOTO)
+        clock.now += 5_000
+        assertTrue(repository.submitPhoto("лампа"))
+        val finishedAt = clock.now
+        assertEquals("012345", repository.activeRun.first()!!.finalCode)
+        assertEquals(7, database.quests().run(id)!!.attempts.size)
+        clock.now += 9_000
+        repository.startRun()
+        repository.submitPhoto("лампа")
+        assertEquals(finishedAt, database.quests().run(id)!!.run.finishedAt)
+        assertEquals(7, database.quests().run(id)!!.attempts.size)
+        database.close()
+        database = Room.databaseBuilder(context, QuestDatabase::class.java, databaseName).build()
+        val reopened =
+            QuestRepository(
+                database,
+                OrganizerAccess(database, PasswordHasher(1_000)),
+                photos,
+                clock,
+            )
+        assertEquals("012345", reopened.activeRun.first()!!.finalCode)
+        assertEquals(6, reopened.activeRun.first()!!.quests.size)
     }
 
     @Test
@@ -220,3 +292,6 @@ private class MutableClock(var now: Long = 1_000) : Clock() {
 
     override fun withZone(zone: ZoneId): Clock = this
 }
+
+private suspend fun QuestRepository.submitPhoto(value: String): Boolean =
+    submitAnswer(QuestType.PHOTO, QuestAnswer.Text(value)) == AnswerVerdict.CORRECT

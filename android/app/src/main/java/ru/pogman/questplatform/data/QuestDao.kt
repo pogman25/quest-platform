@@ -27,7 +27,11 @@ interface QuestDao {
     @Upsert suspend fun saveSettings(row: SettingsRow)
 
     @Query("SELECT * FROM games ORDER BY createdAt DESC, id")
-    fun observeGames(): Flow<List<GameRow>>
+    @Transaction
+    fun observeGames(): Flow<List<GameWithQuests>>
+
+    @Query("DELETE FROM game_quests WHERE gameId = :gameId")
+    suspend fun deleteGameQuests(gameId: String)
 
     @Transaction
     @Query("SELECT * FROM games WHERE id = :id")

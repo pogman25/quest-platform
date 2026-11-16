@@ -52,6 +52,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.coil.compose)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.camera.mlkit)
+    implementation(libs.mlkit.barcode)
+    implementation(libs.zxing.core)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)

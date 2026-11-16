@@ -1,23 +1,23 @@
 package ru.pogman.questplatform
 
+import android.Manifest
 import android.content.ActivityNotFoundException
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import java.io.IOException
 import ru.pogman.questplatform.data.CameraPhotoStore
 import ru.pogman.questplatform.domain.QuestFailure
+import ru.pogman.questplatform.domain.QuestType
 import ru.pogman.questplatform.viewmodel.OrganizerViewModel
 
-data class PhotoActions(val gallery: () -> Unit, val camera: () -> Unit)
+data class PhotoActions(val gallery: (QuestType) -> Unit, val camera: (QuestType) -> Unit)
 
 @Composable
 fun rememberPhotoActions(
@@ -29,16 +29,16 @@ fun rememberPhotoActions(
     val captures = remember(context) { CameraPhotoStore(context.applicationContext) }
     var galleryGameId by rememberSaveable { mutableStateOf<String?>(null) }
     var cameraGameId by rememberSaveable { mutableStateOf<String?>(null) }
-    // Keep the output URI across Activity recreation while the camera is open.
     var cameraUri by rememberSaveable { mutableStateOf<String?>(null) }
+    var galleryType by rememberSaveable { mutableStateOf(QuestType.PHOTO.id) }
+    var cameraType by rememberSaveable { mutableStateOf(QuestType.PHOTO.id) }
 
     val gallery =
         rememberLauncherForActivityResult(LocalPhotoContract()) { uri ->
             val owner = galleryGameId
             galleryGameId = null
-            if (uri != null && owner != null) {
-                organizer.importPhoto(uri, owner)
-            }
+            if (uri != null && owner != null)
+                organizer.importPhoto(uri, owner, QuestType.fromId(galleryType))
         }
     val camera =
         rememberLauncherForActivityResult(CameraPhotoContract()) { success ->
@@ -47,11 +47,14 @@ fun rememberPhotoActions(
             cameraUri = null
             cameraGameId = null
             if (uri != null) {
-                if (success && owner != null) {
-                    organizer.importPhoto(uri, owner, fromCamera = true)
-                } else {
-                    captures.discard(uri)
-                }
+                if (success && owner != null)
+                    organizer.importPhoto(
+                        uri,
+                        owner,
+                        QuestType.fromId(cameraType),
+                        fromCamera = true,
+                    )
+                else captures.discard(uri)
             }
         }
     val handleCameraFailure: (QuestFailure) -> Unit = { failure ->
@@ -60,9 +63,32 @@ fun rememberPhotoActions(
         cameraGameId = null
         organizer.reportPhotoFailure(failure)
     }
-    val handleGallery = {
-        if (enabled && gameId != null && galleryGameId == null && cameraUri == null) {
+    val launchCapture = {
+        if (enabled && gameId != null && cameraGameId == gameId) {
+            try {
+                val uri = captures.create()
+                cameraUri = uri.toString()
+                camera.launch(uri)
+            } catch (_: ActivityNotFoundException) {
+                handleCameraFailure(QuestFailure.PHOTO_SOURCE_UNAVAILABLE)
+            } catch (_: SecurityException) {
+                handleCameraFailure(QuestFailure.CAMERA_PERMISSION_REQUIRED)
+            } catch (_: IOException) {
+                handleCameraFailure(QuestFailure.STORAGE_ERROR)
+            }
+        } else cameraGameId = null
+    }
+    // CAMERA is declared for QR scanning; Android then also checks it for an external capture
+    // intent.
+    val permission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) launchCapture()
+            else handleCameraFailure(QuestFailure.CAMERA_PERMISSION_REQUIRED)
+        }
+    val handleGallery: (QuestType) -> Unit = { type ->
+        if (enabled && gameId != null && galleryGameId == null && cameraGameId == null) {
             galleryGameId = gameId
+            galleryType = type.id
             try {
                 gallery.launch(
                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -76,20 +102,16 @@ fun rememberPhotoActions(
             }
         }
     }
-    val handleCamera = {
-        if (enabled && gameId != null && galleryGameId == null && cameraUri == null) {
-            try {
-                val uri = captures.create()
-                cameraUri = uri.toString()
-                cameraGameId = gameId
-                camera.launch(uri)
-            } catch (_: ActivityNotFoundException) {
-                handleCameraFailure(QuestFailure.PHOTO_SOURCE_UNAVAILABLE)
-            } catch (_: SecurityException) {
-                handleCameraFailure(QuestFailure.PHOTO_SOURCE_UNAVAILABLE)
-            } catch (_: IOException) {
-                handleCameraFailure(QuestFailure.STORAGE_ERROR)
-            }
+    val handleCamera: (QuestType) -> Unit = { type ->
+        if (enabled && gameId != null && galleryGameId == null && cameraGameId == null) {
+            cameraGameId = gameId
+            cameraType = type.id
+            if (
+                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
+            )
+                launchCapture()
+            else permission.launch(Manifest.permission.CAMERA)
         }
     }
     return PhotoActions(handleGallery, handleCamera)
