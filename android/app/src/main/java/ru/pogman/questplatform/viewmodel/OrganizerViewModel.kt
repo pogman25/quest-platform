@@ -111,10 +111,9 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
         } else game.copy(quests = game.quests + defaultQuest(type))
     }
 
-    fun moveQuest(type: QuestType, direction: Int) = updateGame { game ->
+    fun moveQuest(type: QuestType, target: Int) = updateGame { game ->
         val quests = game.quests.toMutableList()
         val index = quests.indexOfFirst { it.type == type }
-        val target = index + direction
         if (index >= 0 && target in quests.indices) {
             val item = quests.removeAt(index)
             quests.add(target, item)

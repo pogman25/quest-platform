@@ -15,6 +15,7 @@ junit = "4.13.2"
 camera = "1.6.2"
 mlkit-barcode = "17.3.0"
 zxing = "3.5.4"
+reorderable = "3.1.0"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -43,6 +44,7 @@ androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "
 androidx-camera-mlkit = { module = "androidx.camera:camera-mlkit-vision", version.ref = "camera" }
 mlkit-barcode = { module = "com.google.mlkit:barcode-scanning", version.ref = "mlkit-barcode" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.androidx.camera.mlkit)
     implementation(libs.mlkit.barcode)
     implementation(libs.zxing.core)
+    implementation(libs.reorderable)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)

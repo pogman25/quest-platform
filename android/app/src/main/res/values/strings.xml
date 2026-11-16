@@ -215,7 +215,8 @@
     <string name="stencil_print_hint">Три листа A4, масштаб 100%. Первый лист — контрольное слово и две карточки, остальные — восемь накладок. Перенесите штрихи и рамки на прозрачный пластик. После «Новый комплект» распечатайте реквизит заново.</string>
     <string name="quest_draft_hint">Возврат назад оставляет изменения в черновике. «Сохранить изменения» сохранит всю игру и вернёт к её настройкам.</string>
     <string name="save_changes_action">Сохранить изменения</string>
-    <string name="quest_setup_hint">Каждая улика настраивается отдельно. Стрелки меняют её позицию и место цифры в коде.</string>
+    <string name="quest_setup_hint">Каждая улика настраивается отдельно. Потяните за значок в правом углу карточки, чтобы изменить порядок улик и место цифры в коде.</string>
+    <string name="move_quest_action">Переместить улику «%1$s»</string>
     <string name="configure_quest_action">Настроить улику</string>
     <string name="remove_quest_action">Убрать из игры</string>
     <string name="add_quest_title">Добавить улику</string>
