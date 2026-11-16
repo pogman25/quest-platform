@@ -151,10 +151,6 @@ fun QuestApp(
         backStack.add(QuestRoute.PasswordChange)
         Unit
     }
-    val handleNoiseMeter = {
-        backStack.add(QuestRoute.NoiseMeter)
-        Unit
-    }
     val photoActions =
         rememberPhotoActions(
             editor?.id,
@@ -215,6 +211,12 @@ fun QuestApp(
         }
     }
     LaunchedEffect(currentRoute) {
+        if (
+            currentRoute == QuestRoute.NoiseMeter && backStack.lastOrNull() == QuestRoute.NoiseMeter
+        ) {
+            backStack.removeLastOrNull()
+            if (backStack.isEmpty()) backStack.add(QuestRoute.Player)
+        }
         if (currentRoute == QuestRoute.Instructions) showNotebook()
         if (currentRoute == QuestRoute.PhotoQuest) {
             backStack.removeLastOrNull()
@@ -258,7 +260,6 @@ fun QuestApp(
             QuestRoute.GameEditor -> R.string.game_settings_title
             QuestRoute.RunHistory -> R.string.history_title
             QuestRoute.PasswordChange -> R.string.password_change_title
-            QuestRoute.NoiseMeter -> R.string.noise_meter_title
             is QuestRoute.SilentCalibration -> R.string.silent_alarm_settings
             QuestRoute.PhotoQuest -> R.string.photo_title
             QuestRoute.Result -> R.string.results_action
@@ -352,7 +353,6 @@ fun QuestApp(
                                             organizer::deleteGame,
                                             handleHistory,
                                             handlePassword,
-                                            handleNoiseMeter,
                                         )
                                     }
                                 }
@@ -449,12 +449,7 @@ fun QuestApp(
                                     }
                                 }
                                 entry<QuestRoute.NoiseMeter> {
-                                    OrganizerContent(access.authorized) {
-                                        NoiseMeterContent(
-                                            noiseMeter,
-                                            currentRoute == QuestRoute.NoiseMeter,
-                                        )
-                                    }
+                                    LoadingContent()
                                 }
                                 entry<QuestRoute.SilentCalibration> { route ->
                                     OrganizerContent(access.authorized) {

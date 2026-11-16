@@ -10,14 +10,14 @@ import ru.pogman.questplatform.viewmodel.NoiseMeterViewModel
 fun NoiseMeterContent(
     viewModel: NoiseMeterViewModel,
     active: Boolean,
-    configurationKey: String = "prototype",
-    initialSettings: NoiseSettings? = null,
-    onApply: ((NoiseSettings) -> Unit)? = null,
+    configurationKey: String,
+    initialSettings: NoiseSettings?,
+    onApply: (NoiseSettings) -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val access = rememberMicrophoneAccess(active, state.running, viewModel::stop)
     LaunchedEffect(configurationKey) {
-        viewModel.configure(configurationKey, initialSettings, force = onApply != null)
+        viewModel.configure(initialSettings)
     }
     val handleCalibrate = { if (access.ready) viewModel.calibrate() }
     val handleResume = { if (access.ready) viewModel.resume() }
@@ -25,7 +25,7 @@ fun NoiseMeterContent(
         val baseline = state.baseline
         if (baseline != null) {
             viewModel.stop()
-            onApply?.invoke(NoiseSettings(baseline, state.sensitivity))
+            onApply(NoiseSettings(baseline, state.sensitivity))
         }
         Unit
     }
@@ -39,6 +39,6 @@ fun NoiseMeterContent(
         viewModel::stop,
         viewModel::setSensitivity,
         viewModel::resetCounter,
-        handleApply.takeIf { onApply != null },
+        handleApply,
     )
 }

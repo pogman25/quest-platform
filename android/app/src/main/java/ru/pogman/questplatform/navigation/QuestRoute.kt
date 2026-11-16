@@ -24,6 +24,7 @@ sealed interface QuestRoute : NavKey {
 
     @Serializable data object PasswordChange : QuestRoute
 
+    // Restore old saved navigation without reopening the removed standalone prototype.
     @Serializable data object NoiseMeter : QuestRoute
 
     @Serializable data class SilentCalibration(val gameId: String) : QuestRoute

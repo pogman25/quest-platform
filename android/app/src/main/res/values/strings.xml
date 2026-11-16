@@ -223,9 +223,7 @@
     <string name="pdf_save_hint">Перед выгрузкой PDF игра сохраняется. Выберите папку для файла, например «Загрузки».</string>
     <string name="search_games_label">Найти игру по названию</string>
     <string name="search_games_empty">Игр с таким названием нет.</string>
-    <string name="noise_meter_action">Прототип шумомера</string>
-    <string name="noise_meter_title">Шумомер</string>
-    <string name="noise_prototype_description">Поставьте телефон на устойчивую поверхность и оставьте микрофон открытым. Звук не сохраняется.</string>
+    <string name="noise_setup_description">Поставьте телефон на устойчивую поверхность и оставьте микрофон открытым. Звук не сохраняется.</string>
     <string name="noise_permission_title">Доступ к микрофону</string>
     <string name="noise_permission_hint">Разрешите микрофон, затем нажмите «Калибровать фон». Если запрос больше не появляется, откройте настройки приложения.</string>
     <string name="noise_permission_action">Разрешить микрофон</string>
@@ -246,7 +244,7 @@
     <string name="noise_input_unprocessed">Источник: микрофон без обработки</string>
     <string name="noise_input_voice">Источник: режим распознавания голоса</string>
     <string name="noise_start_hint">Сохраняйте обычную тишину комнаты 5 секунд. Затем измерение начнётся автоматически.</string>
-    <string name="noise_instructions_action">Как проверить прототип</string>
+    <string name="noise_instructions_action">Как настроить шумомер</string>
     <string name="noise_calibration_hint">После подготовки микрофона 5 секунд сохраняйте обычную тишину комнаты. Затем измерение начнётся автоматически. Новая калибровка обнуляет счётчик. При переносе телефона в другое место откалибруйте фон заново.</string>
     <string name="noise_calibrate_action">Калибровать фон · 5 с</string>
     <string name="noise_recalibrate_action">Калибровать заново · 5 с</string>

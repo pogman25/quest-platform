@@ -26,12 +26,12 @@ fun NoiseMeterScreen(
     onStop: () -> Unit,
     onSensitivity: (Float) -> Unit,
     onReset: () -> Unit,
-    onApply: (() -> Unit)? = null,
+    onApply: () -> Unit,
 ) {
     var instructions by rememberSaveable { mutableStateOf(false) }
     val handleInstructions = { instructions = !instructions }
     ScreenContent {
-        Text(stringResource(R.string.noise_prototype_description))
+        Text(stringResource(R.string.noise_setup_description))
         if (!permissionGranted) {
             SectionCard(stringResource(R.string.noise_permission_title)) {
                 Text(stringResource(R.string.noise_permission_hint))
@@ -94,17 +94,16 @@ fun NoiseMeterScreen(
                 Text(stringResource(R.string.noise_sensitivity_high))
             }
         }
-        if (onApply != null)
-            Button(
-                onApply,
-                enabled =
-                    state.baseline != null &&
-                        state.phase != NoisePhase.CALIBRATING &&
-                        state.phase != NoisePhase.WARMING_UP,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.silent_apply_calibration))
-            }
+        Button(
+            onApply,
+            enabled =
+                state.baseline != null &&
+                    state.phase != NoisePhase.CALIBRATING &&
+                    state.phase != NoisePhase.WARMING_UP,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.silent_apply_calibration))
+        }
         TextButton(handleInstructions) { Text(stringResource(R.string.noise_instructions_action)) }
         if (instructions) {
             Text(stringResource(R.string.noise_calibration_hint))
