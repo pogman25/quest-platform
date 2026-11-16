@@ -32,8 +32,7 @@ fun OrganizerGamesScreen(
     games: List<GameSummary>,
     action: ActionState,
     onCreate: () -> Unit,
-    onEdit: (String) -> Unit,
-    onPrepare: (String) -> Unit,
+    onOpen: (String) -> Unit,
     onDelete: (String) -> Unit,
     onHistory: () -> Unit,
     onPassword: () -> Unit,
@@ -75,7 +74,7 @@ fun OrganizerGamesScreen(
             }
         }
         items(visible, key = { it.id }) { game ->
-            OrganizerGameCard(game, !action.busy, onEdit, onPrepare, handleAskDelete)
+            OrganizerGameCard(game, !action.busy, onOpen, handleAskDelete)
         }
         if (games.isEmpty()) {
             item { Text(stringResource(R.string.games_empty)) }

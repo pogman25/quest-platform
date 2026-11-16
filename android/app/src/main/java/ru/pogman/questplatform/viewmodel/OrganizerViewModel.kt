@@ -128,7 +128,7 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
     }
 
     fun openNfcWriter(tagId: String) = perform {
-        val game = saveDraft(clear = false) ?: return@perform
+        val game = saveDraft() ?: return@perform
         val config = game.quests.find { it.type == QuestType.NFC }?.config as? NfcQuestConfig
         if (config?.tags?.none { it.id == tagId } != false)
             throw QuestException(QuestFailure.GAME_INVALID)
@@ -220,12 +220,12 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
     suspend fun previewPhoto(reference: String) = container.photos.bitmap(reference, 1000)
 
     fun saveQuest() = perform {
-        saveDraft(clear = false)
+        saveDraft()
         channel.send(OrganizerEvent.QuestSaved)
     }
 
     fun prepareMaterial(type: QuestType) = perform {
-        val game = saveDraft(clear = false) ?: return@perform
+        val game = saveDraft() ?: return@perform
         val material = container.materials.prepare(game, type)
         if (!access.authorized.value || mutableEditor.value?.id != game.id) {
             container.materials.discard(material.id)
@@ -259,16 +259,18 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
                 active.gameId == game.id &&
                 active.quests.map { it.type } == game.quests.map { it.type }
         ) {
+            mutableEditor.value = null
             channel.send(OrganizerEvent.PlayerMode)
         } else {
             channel.send(OrganizerEvent.PrepareGame(game.id))
         }
     }
 
-    private suspend fun saveDraft(clear: Boolean = true): Game? {
+    private suspend fun saveDraft(): Game? {
         val game = mutableEditor.value ?: return null
         val normalized =
             game.copy(
+                title = game.title.trim(),
                 quests =
                     game.quests.map { quest ->
                         quest.copy(
@@ -306,10 +308,10 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
                                         )
                                 }
                         )
-                    }
+                    },
             )
         repository.saveGame(normalized)
-        mutableEditor.value = if (clear) null else normalized
+        mutableEditor.value = normalized
         return normalized
     }
 
@@ -321,9 +323,11 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
 
     fun deleteGame(id: String) = perform { repository.deleteGame(id) }
 
-    fun prepareRun(gameId: String, teamName: String, code: String) = perform {
-        val id = repository.prepareRun(gameId, teamName, code)
+    fun prepareRun(teamName: String, code: String) = perform {
+        val game = saveDraft() ?: return@perform
+        val id = repository.prepareRun(game.id, teamName, code)
         repository.activeRun.first { it?.id == id }
+        mutableEditor.value = null
         channel.send(OrganizerEvent.HandedOver(id))
     }
 

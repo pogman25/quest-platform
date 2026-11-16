@@ -1,4 +1,4 @@
-package ru.pogman.questplatform.screens
+package ru.pogman.questplatform.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -7,12 +7,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import ru.pogman.questplatform.R
-import ru.pogman.questplatform.components.*
 import ru.pogman.questplatform.domain.*
 import ru.pogman.questplatform.viewmodel.ActionState
 
 @Composable
-fun GameEditorScreen(
+fun GameSettingsPanel(
     game: Game,
     action: ActionState,
     onChange: ((Game) -> Game) -> Unit,

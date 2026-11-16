@@ -17,6 +17,7 @@ sealed interface QuestRoute : NavKey {
 
     @Serializable data class QuestSettings(val gameId: String, val questId: String) : QuestRoute
 
+    // Old saved state is redirected to the unified game screen's team section.
     @Serializable data class PrepareRun(val gameId: String) : QuestRoute
 
     @Serializable data object RunHistory : QuestRoute

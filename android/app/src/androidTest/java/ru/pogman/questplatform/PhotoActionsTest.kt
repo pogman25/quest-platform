@@ -122,7 +122,7 @@ class PhotoActionsTest {
         input.delete()
         click("Сохранить изменения")
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            !organizer.action.value.busy && organizer.editor.value == null
+            !organizer.action.value.busy
         }
         runBlocking {
             val saved = fixture.container.repository.loadGame("detective-photo-demo")

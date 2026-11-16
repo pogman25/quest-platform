@@ -16,22 +16,17 @@ import ru.pogman.questplatform.domain.GameSummary
 fun OrganizerGameCard(
     game: GameSummary,
     enabled: Boolean,
-    onEdit: (String) -> Unit,
-    onPrepare: (String) -> Unit,
+    onOpen: (String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
-    val handleEdit = { onEdit(game.id) }
-    val handlePrepare = { onPrepare(game.id) }
+    val handleOpen = { onOpen(game.id) }
     val handleDelete = { onDelete(game.id) }
 
     SectionCard(game.title) {
         Text(pluralStringResource(R.plurals.quest_count, game.questCount, game.questCount))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = handlePrepare, enabled = enabled) {
-                Text(stringResource(R.string.prepare_action))
-            }
-            TextButton(onClick = handleEdit, enabled = enabled) {
-                Text(stringResource(R.string.edit_action))
+            Button(onClick = handleOpen, enabled = enabled) {
+                Text(stringResource(R.string.open_game_action))
             }
             TextButton(onClick = handleDelete, enabled = enabled) {
                 Text(stringResource(R.string.delete_action))

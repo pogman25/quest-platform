@@ -10,6 +10,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -26,13 +29,13 @@ import ru.pogman.questplatform.navigation.QuestRoute
 import ru.pogman.questplatform.navigation.editsGame
 import ru.pogman.questplatform.navigation.requiresOrganizer
 import ru.pogman.questplatform.screens.BriefingScreen
-import ru.pogman.questplatform.screens.GameEditorScreen
+import ru.pogman.questplatform.screens.GameScreen
+import ru.pogman.questplatform.screens.GameSection
 import ru.pogman.questplatform.screens.NfcWriterScreen
 import ru.pogman.questplatform.screens.OrganizerEntryScreen
 import ru.pogman.questplatform.screens.OrganizerGamesScreen
 import ru.pogman.questplatform.screens.PasswordChangeScreen
 import ru.pogman.questplatform.screens.PlayerHomeScreen
-import ru.pogman.questplatform.screens.PrepareRunScreen
 import ru.pogman.questplatform.screens.QuestScreen
 import ru.pogman.questplatform.screens.QuestSettingsScreen
 import ru.pogman.questplatform.screens.ResultScreen
@@ -57,6 +60,7 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
     val feedback by player.feedback.collectAsStateWithLifecycle()
     val nfcResult by organizer.nfcResult.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(QuestRoute.Player)
+    var gameSection by rememberSaveable { mutableStateOf(GameSection.SETTINGS) }
     val currentRoute = backStack.last()
 
     val showNotebook = {
@@ -120,15 +124,15 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
         Unit
     }
     val handleCreate = { organizer.editGame(null) }
+    val handleGameSection: (GameSection) -> Unit = {
+        organizer.clearError()
+        gameSection = it
+    }
     val handleQuestSettings: (QuestType) -> Unit = { type ->
         editor?.let { backStack.add(QuestRoute.QuestSettings(it.id, type.id)) }
         Unit
     }
     val saveMaterial = rememberMaterialActions(organizer)
-    val handlePrepare: (String) -> Unit = {
-        organizer.clearError()
-        backStack.add(QuestRoute.PrepareRun(it))
-    }
     val handleHistory = {
         backStack.add(QuestRoute.RunHistory)
         Unit
@@ -153,8 +157,16 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                     backStack.add(QuestRoute.Player)
                     backStack.add(QuestRoute.OrganizerGames)
                 }
-                OrganizerEvent.EditGame -> backStack.add(QuestRoute.GameEditor)
-                OrganizerEvent.GameSaved,
+                OrganizerEvent.EditGame -> {
+                    if (backStack.lastOrNull() is QuestRoute.PrepareRun) {
+                        backStack.removeLastOrNull()
+                        gameSection = GameSection.TEAM
+                    } else gameSection = GameSection.SETTINGS
+                    if (backStack.lastOrNull() != QuestRoute.GameEditor)
+                        backStack.add(QuestRoute.GameEditor)
+                }
+                OrganizerEvent.GameSaved ->
+                    Toast.makeText(context, R.string.game_saved, Toast.LENGTH_SHORT).show()
                 OrganizerEvent.PasswordChanged -> backStack.removeLastOrNull()
                 OrganizerEvent.QuestSaved -> {
                     if (backStack.lastOrNull() is QuestRoute.QuestSettings)
@@ -165,10 +177,17 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                     Toast.makeText(context, R.string.material_saved, Toast.LENGTH_SHORT).show()
                 OrganizerEvent.PlayerMode -> returnToPlayer()
                 is OrganizerEvent.PrepareGame -> {
-                    while (backStack.lastOrNull()?.editsGame == true) {
-                        backStack.removeLastOrNull()
+                    if (organizer.editor.value?.id == event.gameId) {
+                        while (
+                            backStack.lastOrNull() is QuestRoute.QuestSettings ||
+                                backStack.lastOrNull() is QuestRoute.NfcWriter
+                        ) {
+                            backStack.removeLastOrNull()
+                        }
+                        if (backStack.lastOrNull() != QuestRoute.GameEditor)
+                            backStack.add(QuestRoute.GameEditor)
+                        gameSection = GameSection.TEAM
                     }
-                    backStack.add(QuestRoute.PrepareRun(event.gameId))
                 }
                 is OrganizerEvent.NfcWriter ->
                     backStack.add(QuestRoute.NfcWriter(event.gameId, event.tagId))
@@ -227,13 +246,15 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
             QuestRoute.PasswordChange -> R.string.password_change_title
             QuestRoute.PhotoQuest -> R.string.photo_title
             QuestRoute.Result -> R.string.results_action
-            is QuestRoute.PrepareRun -> R.string.prepare_action
+            is QuestRoute.PrepareRun -> R.string.game_team_section
             is QuestRoute.Briefing -> R.string.briefing_action
             is QuestRoute.NfcWriter -> R.string.nfc_writer_title
             else -> R.string.app_name
         }
     val title =
-        if (currentRoute is QuestRoute.QuestSettings)
+        if (currentRoute == QuestRoute.GameEditor)
+            editor?.title ?: stringResource(R.string.game_settings_title)
+        else if (currentRoute is QuestRoute.QuestSettings)
             editor?.quests?.find { it.type.id == currentRoute.questId }?.type?.title
                 ?: stringResource(R.string.game_settings_title)
         else if (currentRoute is QuestRoute.QuestDetails)
@@ -312,7 +333,6 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                             organizerAction,
                                             handleCreate,
                                             organizer::editGame,
-                                            handlePrepare,
                                             organizer::deleteGame,
                                             handleHistory,
                                             handlePassword,
@@ -322,14 +342,17 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                 entry<QuestRoute.GameEditor> {
                                     OrganizerContent(access.authorized) {
                                         editor?.let { game ->
-                                            GameEditorScreen(
+                                            GameScreen(
                                                 game,
+                                                gameSection,
                                                 organizerAction,
+                                                handleGameSection,
                                                 organizer::updateGame,
                                                 organizer::toggleQuest,
                                                 handleQuestSettings,
                                                 organizer::moveQuest,
                                                 organizer::saveGame,
+                                                organizer::prepareRun,
                                             )
                                         } ?: LoadingContent()
                                     }
@@ -372,13 +395,16 @@ fun QuestApp(organizer: OrganizerViewModel, player: PlayerViewModel) {
                                 }
                                 entry<QuestRoute.PrepareRun> { route ->
                                     OrganizerContent(access.authorized) {
-                                        val game = games.find { it.id == route.gameId }
-                                        val handleHandover: (String, String) -> Unit =
-                                            { team, code ->
-                                                organizer.prepareRun(route.gameId, team, code)
-                                            }
-                                        if (game != null)
-                                            PrepareRunScreen(game, organizerAction, handleHandover)
+                                        // Redirect a saved route from the former separate
+                                        // preparation screen.
+                                        LaunchedEffect(route.gameId) {
+                                            organizer.editGame(route.gameId)
+                                        }
+                                        if (organizerAction.error != null)
+                                            UnavailableContent(
+                                                R.string.error_game_not_found,
+                                                handleBack,
+                                            )
                                         else LoadingContent()
                                     }
                                 }
