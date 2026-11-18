@@ -111,3 +111,11 @@ enum class AnswerVerdict {
     INCORRECT,
     UNKNOWN_TAG,
 }
+
+data class PlayerFeedback(
+    val runId: String,
+    val type: QuestType,
+    val revision: Long,
+    val verdict: AnswerVerdict,
+    val nfcText: String? = null,
+)

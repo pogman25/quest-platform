@@ -154,7 +154,10 @@
     <string name="scan_again_action">Сканировать ещё раз</string>
     <string name="nfc_setup_hint">Отметьте одну подлинную метку, остальные будут ложными. Каждая метка имеет собственный токен. Запись сохраняет настройки игры.</string>
     <string name="nfc_tag_label">Название метки</string>
-    <string name="nfc_token_label">Токен NFC-метки</string>
+    <string name="nfc_token_label">Текст NFC-метки</string>
+    <string name="nfc_text_hint">Для ложной метки можно написать забавную фразу: команда увидит её при сканировании.</string>
+    <string name="nfc_message_title">Текст на метке</string>
+    <string name="error_quest_progress_changed">Ведущий сбросил эту улику. Откройте её заново.</string>
     <string name="nfc_add_tag_action">Добавить метку</string>
     <string name="nfc_write_action">Записать метку</string>
     <string name="nfc_verify_action">Проверить метку</string>
@@ -283,4 +286,8 @@
     <string name="silent_standings_title">Тихий обыск · %1$s</string>
     <string name="silent_standings_hint">Завершённые обыски с одинаковым заданием и настройками: меньше превышений — выше место; при равенстве сравниваем время обыска.</string>
     <string name="silent_standing_row">%1$d. %2$s · превышений: %3$d · %4$s</string>
+    <string name="reset_quest_action">Сбросить улику</string>
+    <string name="reset_quest_title">Сбросить «%1$s»?</string>
+    <string name="reset_quest_description">У команды «%1$s» очистятся ответы, открытая цифра, время и счётчик шума только этой улики. Её настройки, калибровка и цифра замка сохранятся. Общий таймер и результаты остальных улик сохранятся. Улику можно будет пройти заново.</string>
+    <string name="quest_progress_reset">Прогресс улики сброшен</string>
 </resources>

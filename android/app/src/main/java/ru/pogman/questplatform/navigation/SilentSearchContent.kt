@@ -17,15 +17,18 @@ fun SilentSearchContent(
 ) {
     val value by viewModel.state.collectAsStateWithLifecycle()
     val state =
-        value.takeIf { it.runId == runId }?.copy(events = maxOf(value.events, quest.noiseCount))
+        value
+            .takeIf { it.runId == runId && it.revision == quest.revision }
+            ?.copy(events = maxOf(value.events, quest.noiseCount))
             ?: SilentSearchState(
                 runId = runId,
+                revision = quest.revision,
                 settings = quest.noiseSettings,
                 events = quest.noiseCount,
             )
-    var code by rememberSaveable(runId) { mutableStateOf("") }
+    var code by rememberSaveable(runId, quest.revision) { mutableStateOf("") }
     val access = rememberMicrophoneAccess(active, state.running, viewModel::stop)
-    LaunchedEffect(runId) { viewModel.bind(runId, quest) }
+    LaunchedEffect(runId, quest.revision) { viewModel.bind(runId, quest) }
     val handleStart = { if (access.ready) viewModel.start() }
     val handleCode: (String) -> Unit = { code = it }
     val handleSubmit = { if (access.ready) viewModel.submit(code) }

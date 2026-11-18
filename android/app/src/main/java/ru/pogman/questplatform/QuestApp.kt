@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -181,6 +182,18 @@ fun QuestApp(
                     if (backStack.lastOrNull() is QuestRoute.QuestSettings)
                         backStack.removeLastOrNull()
                 }
+                is OrganizerEvent.QuestProgressReset -> {
+                    if (player.run.value?.id == event.runId) {
+                        player.resetInteraction()
+                        backStack.removeAll {
+                            it is QuestRoute.QuestDetails && it.questId == event.type.id ||
+                                it == QuestRoute.PhotoQuest && event.type == QuestType.PHOTO ||
+                                it == QuestRoute.Result
+                        }
+                    }
+                    Toast.makeText(context, R.string.quest_progress_reset, Toast.LENGTH_SHORT)
+                        .show()
+                }
                 is OrganizerEvent.MaterialReady -> saveMaterial(event.material)
                 OrganizerEvent.MaterialSaved ->
                     Toast.makeText(context, R.string.material_saved, Toast.LENGTH_SHORT).show()
@@ -244,6 +257,9 @@ fun QuestApp(
                     it == QuestRoute.Result
             }
         }
+    }
+    LaunchedEffect(run?.id, run?.finishedAt) {
+        if (run != null && run?.finishedAt == null) backStack.removeAll { it == QuestRoute.Result }
     }
     LaunchedEffect(access.loading, access.authorized, currentRoute) {
         if (!access.loading && !access.authorized && currentRoute.requiresOrganizer) {
@@ -437,6 +453,7 @@ fun QuestApp(
                                             organizerAction,
                                             organizer::selectRun,
                                             organizer::restartRun,
+                                            organizer::resetQuest,
                                         )
                                     }
                                 }
@@ -504,25 +521,35 @@ fun QuestApp(
                                         val handleSubmit: (QuestAnswer) -> Unit = {
                                             player.submitAnswer(quest.type, it)
                                         }
-                                        QuestScreen(
-                                            selected.id,
-                                            quest,
-                                            selected.finishedAt != null,
-                                            currentRoute == route,
-                                            playerAction,
-                                            feedback,
-                                            handleSubmit,
-                                            player::readNfc,
-                                            player::reportScannerFailure,
-                                            showNotebook,
-                                            handleResult,
-                                        ) {
-                                            SilentSearchContent(
-                                                silentSearch,
+                                        val questFeedback = feedback?.takeIf {
+                                            it.runId == selected.id &&
+                                                it.type == quest.type &&
+                                                it.revision == quest.revision
+                                        }
+                                        // A reset clears saved input and selections, like a new
+                                        // React key.
+                                        key(selected.id, quest.type, quest.revision) {
+                                            QuestScreen(
                                                 selected.id,
                                                 quest,
+                                                selected.finishedAt != null,
                                                 currentRoute == route,
-                                            )
+                                                playerAction,
+                                                questFeedback?.verdict,
+                                                handleSubmit,
+                                                player::readNfc,
+                                                player::reportScannerFailure,
+                                                showNotebook,
+                                                handleResult,
+                                                nfcText = questFeedback?.nfcText,
+                                            ) {
+                                                SilentSearchContent(
+                                                    silentSearch,
+                                                    selected.id,
+                                                    quest,
+                                                    currentRoute == route,
+                                                )
+                                            }
                                         }
                                     } else
                                         UnavailableContent(

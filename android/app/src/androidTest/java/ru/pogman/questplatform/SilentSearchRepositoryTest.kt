@@ -24,7 +24,7 @@ class SilentSearchRepositoryTest {
     private fun open() {
         database =
             Room.databaseBuilder(context, QuestDatabase::class.java, name)
-                .addMigrations(QuestDatabase.MIGRATION_1_2)
+                .addMigrations(QuestDatabase.MIGRATION_1_2, QuestDatabase.MIGRATION_2_3)
                 .build()
         access = OrganizerAccess(database, PasswordHasher(1000))
         repository = QuestRepository(database, access, PhotoStore(context))
@@ -117,6 +117,63 @@ class SilentSearchRepositoryTest {
         }
         assertEquals(AnswerVerdict.INCORRECT, repository.submitSilentCode(runId, "resumed", "1234"))
         assertEquals(AnswerVerdict.CORRECT, repository.submitSilentCode(runId, "resumed", "0427"))
+    }
+
+    @Test
+    fun resetClearsOnlyProgressAndRejectsThePreviousMicrophoneSession() = runBlocking {
+        repository.beginSilentSearch(runId, "before-reset", 0)
+        repository.recordSilentNoise(runId, "before-reset", true)
+        repository.submitSilentCode(runId, "before-reset", "9999")
+        val before = database.quests().run(runId)!!
+        repository.saveGame(
+            game.updateQuest(QuestType.SILENT) {
+                (it as SilentQuestConfig).copy(
+                    code = "1234",
+                    noise = settings.copy(sensitivity = 1f),
+                )
+            }
+        )
+        repository.resetQuest(runId, QuestType.SILENT)
+        val after = database.quests().run(runId)!!
+        assertEquals(before.run, after.run)
+        assertEquals(
+            before.quests
+                .single()
+                .copy(
+                    openedAt = null,
+                    solvedAt = null,
+                    noiseCount = 0,
+                    noiseActive = false,
+                    lastNoiseAt = null,
+                    revision = 1,
+                ),
+            after.quests.single(),
+        )
+        assertTrue(after.attempts.isEmpty())
+        try {
+            repository.recordSilentNoise(runId, "before-reset", true)
+            fail("Expected old microphone session to be rejected")
+        } catch (error: QuestException) {
+            assertEquals(QuestFailure.SILENT_MIC_REQUIRED, error.failure)
+        }
+        try {
+            repository.beginSilentSearch(runId, "delayed-start", 0)
+            fail("Expected a delayed start to be rejected")
+        } catch (error: QuestException) {
+            assertEquals(QuestFailure.QUEST_PROGRESS_CHANGED, error.failure)
+        }
+        assertEquals(settings, repository.beginSilentSearch(runId, "after-reset", 1).settings)
+        try {
+            repository.submitSilentCode(runId, "before-reset", "0427")
+            fail("Expected old microphone session to be rejected")
+        } catch (error: QuestException) {
+            assertEquals(QuestFailure.SILENT_MIC_REQUIRED, error.failure)
+        }
+        assertEquals(1, repository.recordSilentNoise(runId, "after-reset", true).count)
+        assertEquals(
+            AnswerVerdict.CORRECT,
+            repository.submitSilentCode(runId, "after-reset", "0427"),
+        )
     }
 
     @Test

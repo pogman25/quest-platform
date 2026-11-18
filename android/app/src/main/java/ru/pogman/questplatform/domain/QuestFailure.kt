@@ -29,6 +29,7 @@ enum class QuestFailure {
     STORAGE_ERROR,
     SILENT_CALIBRATION_REQUIRED,
     SILENT_MIC_REQUIRED,
+    QUEST_PROGRESS_CHANGED,
 }
 
 class QuestException(val failure: QuestFailure) : IllegalStateException(failure.name)

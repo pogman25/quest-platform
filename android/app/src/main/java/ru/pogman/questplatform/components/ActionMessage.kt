@@ -49,4 +49,5 @@ private fun errorMessage(error: QuestFailure): Int =
         QuestFailure.STORAGE_ERROR -> R.string.error_storage
         QuestFailure.SILENT_CALIBRATION_REQUIRED -> R.string.silent_calibration_required
         QuestFailure.SILENT_MIC_REQUIRED -> R.string.silent_microphone_required
+        QuestFailure.QUEST_PROGRESS_CHANGED -> R.string.error_quest_progress_changed
     }

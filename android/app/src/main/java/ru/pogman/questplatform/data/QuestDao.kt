@@ -79,5 +79,8 @@ interface QuestDao {
 
     @Insert suspend fun insertAttempt(row: AttemptRow)
 
+    @Query("DELETE FROM attempts WHERE runId = :runId AND questId = :questId")
+    suspend fun deleteQuestAttempts(runId: String, questId: String)
+
     @Query("DELETE FROM runs WHERE id = :id") suspend fun deleteRun(id: String)
 }

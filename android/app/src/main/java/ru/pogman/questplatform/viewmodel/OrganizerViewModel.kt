@@ -32,6 +32,8 @@ sealed interface OrganizerEvent {
 
     data object QuestSaved : OrganizerEvent
 
+    data class QuestProgressReset(val runId: String, val type: QuestType) : OrganizerEvent
+
     data object MaterialSaved : OrganizerEvent
 
     data class MaterialReady(val material: PreparedMaterial) : OrganizerEvent
@@ -357,6 +359,11 @@ class OrganizerViewModel(private val container: AppContainer) : ActionViewModel(
         val restartedId = repository.restartRun(id)
         repository.activeRun.first { it?.id == restartedId }
         channel.send(OrganizerEvent.HandedOver(restartedId))
+    }
+
+    fun resetQuest(runId: String, type: QuestType) = perform {
+        repository.resetQuest(runId, type)
+        channel.send(OrganizerEvent.QuestProgressReset(runId, type))
     }
 
     fun logout() {

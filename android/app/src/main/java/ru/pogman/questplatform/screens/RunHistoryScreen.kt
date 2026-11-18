@@ -14,9 +14,13 @@ import ru.pogman.questplatform.components.ActionMessage
 import ru.pogman.questplatform.components.RunHistoryCard
 import ru.pogman.questplatform.components.ScreenContent
 import ru.pogman.questplatform.components.SilentStandingsCard
+import ru.pogman.questplatform.domain.QuestRunSummary
+import ru.pogman.questplatform.domain.QuestType
 import ru.pogman.questplatform.domain.RunSummary
 import ru.pogman.questplatform.domain.silentCompetitions
 import ru.pogman.questplatform.viewmodel.ActionState
+
+private data class QuestResetSelection(val run: RunSummary, val quest: QuestRunSummary)
 
 @Composable
 fun RunHistoryScreen(
@@ -24,8 +28,20 @@ fun RunHistoryScreen(
     action: ActionState,
     onSelect: (String) -> Unit,
     onRestart: (String) -> Unit,
+    onResetQuest: (String, QuestType) -> Unit,
 ) {
     var restarting by remember { mutableStateOf<RunSummary?>(null) }
+    var questReset by remember { mutableStateOf<QuestResetSelection?>(null) }
+    val handleAskResetQuest: (RunSummary, QuestRunSummary) -> Unit = { run, quest ->
+        questReset = QuestResetSelection(run, quest)
+    }
+    val handleCancelResetQuest = { questReset = null }
+    val handleResetQuest = {
+        questReset?.let { selected ->
+            selected.quest.type?.let { onResetQuest(selected.run.id, it) }
+        }
+        questReset = null
+    }
     val handleAskRestart: (RunSummary) -> Unit = { restarting = it }
     val handleCancelRestart = { restarting = null }
     val handleRestart = {
@@ -39,7 +55,7 @@ fun RunHistoryScreen(
             Text(stringResource(R.string.history_empty))
         }
         runs.forEach { run ->
-            RunHistoryCard(run, !action.busy, onSelect, handleAskRestart)
+            RunHistoryCard(run, !action.busy, onSelect, handleAskRestart, handleAskResetQuest)
         }
     }
     restarting?.let { run ->
@@ -56,6 +72,23 @@ fun RunHistoryScreen(
                 TextButton(onClick = handleCancelRestart) {
                     Text(stringResource(R.string.cancel_action))
                 }
+            },
+        )
+    }
+    questReset?.let { selected ->
+        AlertDialog(
+            onDismissRequest = handleCancelResetQuest,
+            title = { Text(stringResource(R.string.reset_quest_title, selected.quest.title)) },
+            text = {
+                Text(stringResource(R.string.reset_quest_description, selected.run.teamName))
+            },
+            confirmButton = {
+                TextButton(handleResetQuest, enabled = !action.busy) {
+                    Text(stringResource(R.string.reset_quest_action))
+                }
+            },
+            dismissButton = {
+                TextButton(handleCancelResetQuest) { Text(stringResource(R.string.cancel_action)) }
             },
         )
     }

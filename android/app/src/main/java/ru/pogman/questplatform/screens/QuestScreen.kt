@@ -27,6 +27,7 @@ fun QuestScreen(
     onScannerFailure: () -> Unit,
     onReturn: () -> Unit,
     onResult: () -> Unit,
+    nfcText: String? = null,
     silentSearch: @Composable () -> Unit = {},
 ) {
     var text by rememberSaveable(runId, quest.type.id) { mutableStateOf("") }
@@ -121,19 +122,24 @@ fun QuestScreen(
             QuestType.QR -> QrScanner(active, action.busy, handleToken, onScannerFailure)
             QuestType.SILENT -> silentSearch()
         }
-        when (feedback) {
-            AnswerVerdict.INCORRECT ->
-                Text(
-                    stringResource(R.string.incorrect_answer),
-                    color = MaterialTheme.colorScheme.error,
-                )
-            AnswerVerdict.UNKNOWN_TAG ->
-                Text(
-                    stringResource(R.string.nfc_unknown_tag),
-                    color = MaterialTheme.colorScheme.error,
-                )
-            else -> Unit
-        }
+        if (quest.type == QuestType.NFC && nfcText != null && feedback != AnswerVerdict.CORRECT) {
+            SectionCard(stringResource(R.string.nfc_message_title)) {
+                Text(nfcText, style = MaterialTheme.typography.bodyLarge)
+            }
+        } else
+            when (feedback) {
+                AnswerVerdict.INCORRECT ->
+                    Text(
+                        stringResource(R.string.incorrect_answer),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                AnswerVerdict.UNKNOWN_TAG ->
+                    Text(
+                        stringResource(R.string.nfc_unknown_tag),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                else -> Unit
+            }
         ActionMessage(action)
     }
 }

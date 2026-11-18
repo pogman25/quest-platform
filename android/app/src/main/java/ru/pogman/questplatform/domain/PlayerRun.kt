@@ -13,6 +13,7 @@ data class PlayerQuest(
     val noiseCount: Int = 0,
     val noiseActive: Boolean = false,
     val lastNoiseAt: Long? = null,
+    val revision: Long = 0,
 ) {
     val title: String
         get() = type.title
@@ -51,6 +52,7 @@ data class QuestRunSummary(
     val solvedAt: Long?,
     val noiseCount: Int? = null,
     val noiseRulesKey: String? = null,
+    val type: QuestType? = null,
 )
 
 data class RunSummary(

@@ -13,6 +13,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import ru.pogman.questplatform.R
+import ru.pogman.questplatform.domain.QuestRunSummary
 import ru.pogman.questplatform.domain.RunSummary
 
 private val logDate = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")
@@ -23,6 +24,7 @@ fun RunHistoryCard(
     enabled: Boolean,
     onSelect: (String) -> Unit,
     onRestart: (RunSummary) -> Unit,
+    onResetQuest: (RunSummary, QuestRunSummary) -> Unit,
 ) {
     var expanded by rememberSaveable(run.id) { mutableStateOf(false) }
     val handleExpand = { expanded = !expanded }
@@ -45,6 +47,7 @@ fun RunHistoryCard(
             ElapsedTime(run.startedAt, run.finishedAt, stringResource(R.string.total_time_label))
         }
         run.quests.forEach { quest ->
+            val handleResetQuest = { onResetQuest(run, quest) }
             Text("${quest.position}. ${quest.title}")
             quest.noiseCount?.let { Text(stringResource(R.string.silent_noise_count, it)) }
             if (quest.openedAt != null)
@@ -53,6 +56,18 @@ fun RunHistoryCard(
                     quest.solvedAt,
                     stringResource(R.string.quest_time_label),
                 )
+            if (run.startedAt != null && quest.type != null) {
+                TextButton(
+                    onClick = handleResetQuest,
+                    enabled =
+                        enabled &&
+                            (quest.openedAt != null ||
+                                quest.solvedAt != null ||
+                                (quest.noiseCount ?: 0) > 0),
+                ) {
+                    Text(stringResource(R.string.reset_quest_action))
+                }
+            }
         }
         Text(stringResource(R.string.attempt_statistics, run.attempts, run.incorrectAttempts))
         if (run.log.isNotEmpty()) {

@@ -85,6 +85,7 @@ data class RunQuestRow(
     @ColumnInfo(defaultValue = "0") val noiseCount: Int = 0,
     @ColumnInfo(defaultValue = "0") val noiseActive: Boolean = false,
     val lastNoiseAt: Long? = null,
+    @ColumnInfo(defaultValue = "0") val revision: Long = 0,
 )
 
 @Entity(

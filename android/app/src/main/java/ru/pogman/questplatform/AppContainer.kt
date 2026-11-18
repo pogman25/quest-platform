@@ -20,7 +20,7 @@ class AppContainer(
     context: Context,
     val database: QuestDatabase =
         Room.databaseBuilder(context, QuestDatabase::class.java, "quest-platform.db")
-            .addMigrations(QuestDatabase.MIGRATION_1_2)
+            .addMigrations(QuestDatabase.MIGRATION_1_2, QuestDatabase.MIGRATION_2_3)
             .build(),
     val clock: Clock = Clock.systemUTC(),
 ) {

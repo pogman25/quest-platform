@@ -16,7 +16,7 @@ data class SilentProgress(val count: Int, val active: Boolean, val lastNoiseAt: 
 
 data class SilentSearchSetup(val settings: NoiseSettings, val progress: SilentProgress)
 
-private data class SilentSession(val runId: String, val id: String)
+private data class SilentSession(val runId: String, val id: String, val revision: Long)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class QuestRepository(
@@ -225,6 +225,33 @@ class QuestRepository(
         }
     }
 
+    suspend fun resetQuest(runId: String, type: QuestType) {
+        access.requireOrganizer()
+        database.withTransaction {
+            access.requireOrganizer()
+            val stored = dao.run(runId) ?: fail(QuestFailure.RUN_NOT_FOUND)
+            requireStarted(stored)
+            val quest =
+                stored.quests.find { it.questId == type.id } ?: fail(QuestFailure.QUEST_NOT_FOUND)
+            dao.deleteQuestAttempts(runId, type.id)
+            dao.updateRunQuest(
+                quest.copy(
+                    openedAt = null,
+                    solvedAt = null,
+                    noiseCount = 0,
+                    noiseActive = false,
+                    lastNoiseAt = null,
+                    revision = quest.revision + 1,
+                )
+            )
+            if (stored.run.finishedAt != null) dao.updateRun(stored.run.copy(finishedAt = null))
+            if (type == QuestType.SILENT) {
+                val session = silentSession.get()
+                if (session?.runId == runId) silentSession.compareAndSet(session, null)
+            }
+        }
+    }
+
     suspend fun startRun(runId: String? = null) {
         database.withTransaction {
             val stored = currentRun(runId)
@@ -233,12 +260,13 @@ class QuestRepository(
         }
     }
 
-    suspend fun openQuest(type: QuestType, runId: String? = null) {
+    suspend fun openQuest(type: QuestType, runId: String? = null, expectedRevision: Long? = null) {
         database.withTransaction {
             val stored = currentRun(runId)
             requireStarted(stored)
             val quest =
                 stored.quests.find { it.questId == type.id } ?: fail(QuestFailure.QUEST_NOT_FOUND)
+            requireRevision(quest, expectedRevision)
             if (quest.openedAt == null && type != QuestType.SILENT)
                 dao.updateRunQuest(quest.copy(openedAt = clock.millis()))
         }
@@ -248,23 +276,28 @@ class QuestRepository(
         type: QuestType,
         answer: QuestAnswer,
         runId: String? = null,
-    ): AnswerVerdict = resolveAnswer(type, answer, runId)
+        expectedRevision: Long? = null,
+    ): AnswerVerdict = resolveAnswer(type, answer, runId, expectedRevision = expectedRevision)
 
-    suspend fun beginSilentSearch(runId: String, sessionId: String): SilentSearchSetup =
-        database.withTransaction {
-            val stored = currentRun(runId)
-            requireStarted(stored)
-            val quest =
-                stored.quests.find { it.questId == QuestType.SILENT.id }
-                    ?: fail(QuestFailure.QUEST_NOT_FOUND)
-            if (quest.solvedAt != null) fail(QuestFailure.SILENT_MIC_REQUIRED)
-            val config = configs.decode(QuestType.SILENT, quest.config) as SilentQuestConfig
-            val settings =
-                config.noise?.takeIf { it.valid } ?: fail(QuestFailure.SILENT_CALIBRATION_REQUIRED)
-            if (quest.openedAt == null) dao.updateRunQuest(quest.copy(openedAt = clock.millis()))
-            silentSession.set(SilentSession(runId, sessionId))
-            SilentSearchSetup(settings, quest.silentProgress())
-        }
+    suspend fun beginSilentSearch(
+        runId: String,
+        sessionId: String,
+        expectedRevision: Long? = null,
+    ): SilentSearchSetup = database.withTransaction {
+        val stored = currentRun(runId)
+        requireStarted(stored)
+        val quest =
+            stored.quests.find { it.questId == QuestType.SILENT.id }
+                ?: fail(QuestFailure.QUEST_NOT_FOUND)
+        requireRevision(quest, expectedRevision)
+        if (quest.solvedAt != null) fail(QuestFailure.SILENT_MIC_REQUIRED)
+        val config = configs.decode(QuestType.SILENT, quest.config) as SilentQuestConfig
+        val settings =
+            config.noise?.takeIf { it.valid } ?: fail(QuestFailure.SILENT_CALIBRATION_REQUIRED)
+        if (quest.openedAt == null) dao.updateRunQuest(quest.copy(openedAt = clock.millis()))
+        silentSession.set(SilentSession(runId, sessionId, quest.revision))
+        SilentSearchSetup(settings, quest.silentProgress())
+    }
 
     fun endSilentSearch(sessionId: String) {
         val current = silentSession.get()
@@ -281,7 +314,7 @@ class QuestRepository(
         val quest =
             stored.quests.find { it.questId == QuestType.SILENT.id }
                 ?: fail(QuestFailure.QUEST_NOT_FOUND)
-        requireSilentSession(runId, sessionId)
+        requireSilentSession(runId, sessionId, quest.revision)
         if (quest.solvedAt != null || quest.noiseActive == active)
             return@withTransaction quest.silentProgress()
         val updated =
@@ -297,9 +330,14 @@ class QuestRepository(
     suspend fun submitSilentCode(runId: String, sessionId: String, code: String): AnswerVerdict =
         resolveAnswer(QuestType.SILENT, QuestAnswer.Text(code), runId, sessionId)
 
-    private fun requireSilentSession(runId: String, sessionId: String?) {
-        if (sessionId == null || silentSession.get() != SilentSession(runId, sessionId))
+    private fun requireSilentSession(runId: String, sessionId: String?, revision: Long) {
+        if (sessionId == null || silentSession.get() != SilentSession(runId, sessionId, revision))
             fail(QuestFailure.SILENT_MIC_REQUIRED)
+    }
+
+    private fun requireRevision(quest: RunQuestRow, expected: Long?) {
+        if (expected != null && quest.revision != expected)
+            fail(QuestFailure.QUEST_PROGRESS_CHANGED)
     }
 
     private fun RunQuestRow.silentProgress() = SilentProgress(noiseCount, noiseActive, lastNoiseAt)
@@ -309,13 +347,15 @@ class QuestRepository(
         answer: QuestAnswer,
         runId: String?,
         sessionId: String? = null,
+        expectedRevision: Long? = null,
     ): AnswerVerdict = database.withTransaction {
         val stored = currentRun(runId)
         requireStarted(stored)
         val quest =
             stored.quests.find { it.questId == type.id } ?: fail(QuestFailure.QUEST_NOT_FOUND)
+        requireRevision(quest, expectedRevision)
         if (quest.solvedAt != null) return@withTransaction AnswerVerdict.CORRECT
-        if (type == QuestType.SILENT) requireSilentSession(stored.run.id, sessionId)
+        if (type == QuestType.SILENT) requireSilentSession(stored.run.id, sessionId, quest.revision)
         val config = configs.decode(type, quest.config)
         val verdict = evaluateAnswer(type, config, answer)
         if (verdict == AnswerVerdict.UNKNOWN_TAG) return@withTransaction verdict
@@ -503,6 +543,7 @@ class QuestRepository(
                         quest.noiseCount,
                         quest.noiseActive,
                         quest.lastNoiseAt,
+                        quest.revision,
                     )
                 },
             run.gameId,
@@ -532,6 +573,7 @@ class QuestRepository(
                                 .digest(it.config.toByteArray())
                                 .joinToString("") { byte -> "%02x".format(byte) }
                         else null,
+                        type = QuestType.fromId(it.questId),
                     )
                 },
             attempts

@@ -12,6 +12,7 @@ import ru.pogman.questplatform.domain.*
 
 data class SilentSearchState(
     val runId: String? = null,
+    val revision: Long = 0,
     val phase: NoisePhase = NoisePhase.IDLE,
     val settings: NoiseSettings? = null,
     val level: NoiseLevel? = null,
@@ -38,11 +39,12 @@ class SilentSearchViewModel(
     private var pendingCode: Pair<String, Long>? = null
 
     fun bind(runId: String, quest: PlayerQuest) {
-        if (state.value.runId == runId) return
+        if (state.value.runId == runId && state.value.revision == quest.revision) return
         stop()
         mutableState.value =
             SilentSearchState(
                 runId = runId,
+                revision = quest.revision,
                 settings = quest.noiseSettings,
                 events = quest.noiseCount,
             )
@@ -51,6 +53,7 @@ class SilentSearchViewModel(
 
     fun start() {
         val runId = state.value.runId ?: return
+        val revision = state.value.revision
         if (capture?.isActive == true) return
         val previous = capture
         pendingCode = null
@@ -77,7 +80,9 @@ class SilentSearchViewModel(
                     val started = startedAt ?: sample.timeMs.also { startedAt = it }
                     if (sample.timeMs - started < 1000) return@collect
                     if (setup == null) {
-                        val saved = persist { repository.beginSilentSearch(runId, sessionId) }
+                        val saved = persist {
+                            repository.beginSilentSearch(runId, sessionId, revision)
+                        }
                         setup = saved
                         active = saved.progress.active
                         detector = NoiseDetector(saved.settings.baseline, active)

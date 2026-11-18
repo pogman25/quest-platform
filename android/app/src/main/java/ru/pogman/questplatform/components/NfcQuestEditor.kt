@@ -89,7 +89,8 @@ fun NfcQuestEditor(
             handleToken,
             Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.nfc_token_label)) },
-            singleLine = true,
+            supportingText = { Text(stringResource(R.string.nfc_text_hint)) },
+            minLines = 2,
             enabled = enabled,
         )
         FlowRow {
